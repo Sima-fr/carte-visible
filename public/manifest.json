@@ -1,0 +1,13 @@
+{
+  "name": "Coup d'Œil",
+  "short_name": "Coup d'Œil",
+  "description": "La carte de votre restaurant, en photos.",
+  "start_url": "/admin",
+  "display": "standalone",
+  "background_color": "#FAF3E6",
+  "theme_color": "#7C2D2D",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
