@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
+import { resizeImage } from '../../lib/resizeImage';
 
 export default function AdminPage() {
   const [dishes, setDishes] = useState([]);
@@ -40,9 +41,16 @@ export default function AdminPage() {
 
     let photo_url = null;
     if (file) {
-      const ext = file.name.split('.').pop();
-      const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      const { error: uploadError } = await supabase.storage.from('photos').upload(path, file);
+      let toUpload = file;
+      try {
+        toUpload = await resizeImage(file, 1080, 0.75);
+      } catch (e) {
+        toUpload = file;
+      }
+      const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
+      const { error: uploadError } = await supabase.storage
+        .from('photos')
+        .upload(path, toUpload, { contentType: 'image/jpeg' });
       if (uploadError) {
         alert("Erreur lors de l'envoi de la photo : " + uploadError.message);
         setSaving(false);
