@@ -3,7 +3,7 @@ export default function Home() {
     <div className="wrap">
       <div className="awning" />
       <div className="header">
-        <div className="eyebrow">Carte Visible</div>
+        <div className="eyebrow">Coup d'Œil</div>
         <h1 className="title">La carte de votre restaurant, en photos</h1>
         <p className="sub">
           <a className="btn" href="/admin" style={{ display: 'inline-block', textDecoration: 'none', marginRight: 10 }}>
