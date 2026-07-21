@@ -79,3 +79,47 @@ a { color: inherit; }
   width: 100%; background: var(--paper); border: 1px solid var(--line); color: var(--ink);
   padding: 9px 10px; border-radius: 8px; font-family: 'Work Sans', sans-serif; font-size: 13.5px;
 }
+
+/* ---- Accordion menu (client) ---- */
+.accordion-header {
+  width: 100%; display: flex; justify-content: space-between; align-items: center;
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+  padding: 14px 16px; font-family: 'Big Shoulders Text', sans-serif; font-weight: 700;
+  font-size: 15px; color: var(--ink); cursor: pointer; box-shadow: 0 2px 8px rgba(43,33,24,0.05);
+}
+.accordion-subheader {
+  width: 100%; display: flex; justify-content: space-between; align-items: center;
+  background: var(--paper); border: 1px solid var(--line); border-radius: 10px;
+  padding: 11px 14px; font-family: 'Work Sans', sans-serif; font-weight: 600;
+  font-size: 13.5px; color: var(--ink); cursor: pointer; margin-bottom: 8px;
+}
+.chevron { transition: transform 0.2s ease; color: var(--ink-dim); font-size: 16px; }
+.chevron.open { transform: rotate(180deg); }
+.accordion-body { padding: 10px 6px 4px; }
+.accordion-subbody { padding: 2px 8px 10px; }
+
+.dish-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 4px; border-bottom: 1px solid var(--line);
+}
+.dish-row:last-child { border-bottom: none; }
+.dish-row.unavailable { opacity: 0.5; }
+.badge-epuise {
+  display: inline-block; margin-left: 8px; background: var(--brick); color: #FAF3E6;
+  font-size: 9px; font-weight: 700; text-transform: uppercase; padding: 2px 7px; border-radius: 999px;
+  font-family: 'Big Shoulders Text', sans-serif;
+}
+.plus-btn {
+  width: 32px; height: 32px; border-radius: 999px; border: 1px solid var(--wine);
+  background: var(--card); color: var(--wine); font-size: 18px; font-weight: 700;
+  cursor: pointer; flex-shrink: 0; line-height: 1;
+}
+.plus-btn:hover { background: var(--wine); color: #FAF3E6; }
+
+.cart-bar {
+  position: fixed; left: 20px; right: 20px; bottom: 20px; max-width: 940px; margin: 0 auto;
+  background: var(--wine); color: #FAF3E6; border: none; border-radius: 12px;
+  padding: 16px 20px; display: flex; justify-content: space-between; align-items: center;
+  font-family: 'Big Shoulders Text', sans-serif; font-weight: 700; font-size: 15px;
+  cursor: pointer; box-shadow: 0 8px 24px rgba(43,33,24,0.25); z-index: 10;
+}
