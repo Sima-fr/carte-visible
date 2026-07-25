@@ -3,12 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { supabase } from '../../lib/supabaseClient';
-
-function parsePrice(str) {
-  if (!str) return 0;
-  const match = String(str).replace(',', '.').match(/[\d.]+/);
-  return match ? parseFloat(match[0]) : 0;
-}
+import { formatPrice } from '../../lib/format';
 
 export default function MenuPage() {
   const [dishes, setDishes] = useState([]);
@@ -75,7 +70,7 @@ export default function MenuPage() {
     .map(([id, qty]) => ({ dish: dishes.find((d) => d.id === id), qty }))
     .filter((i) => i.dish);
   const cartCount = cartItems.reduce((sum, i) => sum + i.qty, 0);
-  const cartTotal = cartItems.reduce((sum, i) => sum + i.qty * parsePrice(i.dish.price), 0);
+  const cartTotal = cartItems.reduce((sum, i) => sum + i.qty * (i.dish.price ? parseFloat(String(i.dish.price).replace(',', '.').match(/[\d.]+/)?.[0] || 0) : 0), 0);
 
   // ---------- Photo detail overlay ----------
   if (selected) {
@@ -110,7 +105,7 @@ export default function MenuPage() {
             )}
           </div>
           <div style={{ fontFamily: 'Fraunces, serif', fontSize: 24, fontWeight: 700 }}>{selected.name}</div>
-          <div style={{ color: 'var(--wine)', fontWeight: 700, fontSize: 15, marginBottom: 16 }}>{selected.price}</div>
+          <div style={{ color: 'var(--wine)', fontWeight: 700, fontSize: 15, marginBottom: 16 }}>{formatPrice(selected.price)}</div>
           <button className="btn" onClick={() => { addToCart(selected); setSelected(null); }}>
             + Ajouter à ma commande
           </button>
@@ -145,7 +140,7 @@ export default function MenuPage() {
             <div key={dish.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--line)' }}>
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 600, fontSize: 14 }}>{dish.name}</div>
-                <div style={{ color: 'var(--ink-dim)', fontSize: 12.5 }}>{dish.price}</div>
+                <div style={{ color: 'var(--ink-dim)', fontSize: 12.5 }}>{formatPrice(dish.price)}</div>
               </div>
               <button onClick={() => decFromCart(dish.id)} className="btn ghost" style={{ padding: '4px 10px', fontSize: 13 }}>−</button>
               <span style={{ minWidth: 18, textAlign: 'center', fontWeight: 600 }}>{qty}</span>
@@ -174,7 +169,7 @@ export default function MenuPage() {
       <div className="header">
         <div className="eyebrow">Le Petit Basilic</div>
         <h1 className="title">La carte</h1>
-        <p className="sub">Touchez un plat pour voir sa photo, ou ajoutez-le directement à votre commande.</p>
+        <p className="sub">Cette liste vous permet de composer votre commande sans rien oublier — touchez un plat pour voir sa photo en grand.</p>
       </div>
 
       <div style={{ padding: '0 20px 90px' }}>
@@ -246,12 +241,20 @@ export default function MenuPage() {
 function DishRow({ dish, onView, onAdd }) {
   return (
     <div className={`dish-row ${!dish.available ? 'unavailable' : ''}`}>
+      <div
+        onClick={dish.available ? onView : undefined}
+        className="dish-thumb"
+        style={{
+          backgroundImage: dish.photo_url ? `url('${dish.photo_url}')` : 'none',
+          cursor: dish.available ? 'pointer' : 'default',
+        }}
+      />
       <div onClick={dish.available ? onView : undefined} style={{ flex: 1, cursor: dish.available ? 'pointer' : 'default' }}>
         <div style={{ fontWeight: 600, fontSize: 14.5 }}>
           {dish.name}
           {!dish.available && <span className="badge-epuise">Épuisé</span>}
         </div>
-        <div style={{ color: 'var(--wine)', fontSize: 13, fontWeight: 600, marginTop: 2 }}>{dish.price}</div>
+        <div style={{ color: 'var(--wine)', fontSize: 13, fontWeight: 600, marginTop: 2 }}>{formatPrice(dish.price)}</div>
       </div>
       {dish.available && (
         <button onClick={onAdd} className="plus-btn" aria-label="Ajouter à la commande">+</button>
