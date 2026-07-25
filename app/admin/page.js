@@ -6,6 +6,7 @@ import { resizeImage } from '../../lib/resizeImage';
 
 export default function AdminPage() {
   const [dishes, setDishes] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [name, setName] = useState('');
@@ -26,8 +27,17 @@ export default function AdminPage() {
     setLoading(false);
   }
 
+  async function loadCategories() {
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .order('position', { ascending: true });
+    if (!error) setCategories(data);
+  }
+
   useEffect(() => {
     loadDishes();
+    loadCategories();
   }, []);
 
   function onFileChange(e) {
@@ -47,7 +57,6 @@ export default function AdminPage() {
       try {
         toUpload = await resizeImage(file, 1080, 0.75);
       } catch (e) {
-        // si la compression échoue, on envoie la photo originale plutôt que de bloquer
         toUpload = file;
       }
       const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
@@ -63,10 +72,12 @@ export default function AdminPage() {
       photo_url = publicUrlData.publicUrl;
     }
 
+    const catName = category.trim() || 'Plats';
+
     const { error } = await supabase.from('dishes').insert({
       name: name.trim(),
       price: price.trim(),
-      category: category.trim() || 'Plats',
+      category: catName,
       subcategory: subcategory.trim() || null,
       photo_url,
       available: true,
@@ -75,6 +86,12 @@ export default function AdminPage() {
     if (error) {
       alert("Erreur lors de l'ajout du plat : " + error.message);
     } else {
+      const existing = categories.find((c) => c.name === catName);
+      if (!existing) {
+        const maxPos = categories.length ? Math.max(...categories.map((c) => c.position)) : -1;
+        await supabase.from('categories').insert({ name: catName, position: maxPos + 1 });
+        loadCategories();
+      }
       setName('');
       setPrice('');
       setCategory('');
@@ -85,6 +102,16 @@ export default function AdminPage() {
       loadDishes();
     }
     setSaving(false);
+  }
+
+  async function moveCategory(index, dir) {
+    const other = index + dir;
+    if (other < 0 || other >= categories.length) return;
+    const a = categories[index];
+    const b = categories[other];
+    await supabase.from('categories').update({ position: b.position }).eq('id', a.id);
+    await supabase.from('categories').update({ position: a.position }).eq('id', b.id);
+    loadCategories();
   }
 
   async function toggleAvailable(dish) {
@@ -206,6 +233,45 @@ export default function AdminPage() {
               </button>
             </div>
           )}
+        </div>
+
+        <div className="card" style={{ marginTop: 16 }}>
+          <h3 style={{ fontFamily: 'Fraunces, serif', margin: '0 0 14px' }}>Ordre des catégories</h3>
+          <p style={{ color: 'var(--ink-dim)', fontSize: 12.5, marginTop: -8, marginBottom: 14 }}>
+            L'ordre choisi ici est celui qui s'affiche côté client.
+          </p>
+          {categories.length === 0 && (
+            <p style={{ color: 'var(--ink-dim)', fontSize: 13 }}>
+              Les catégories apparaîtront ici dès que tu auras ajouté un plat.
+            </p>
+          )}
+          {categories.map((c, i) => (
+            <div
+              key={c.id}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '9px 4px', borderBottom: '1px solid var(--line)',
+              }}
+            >
+              <div style={{ flex: 1, fontWeight: 600, fontSize: 14 }}>{c.name}</div>
+              <button
+                onClick={() => moveCategory(i, -1)}
+                disabled={i === 0}
+                className="btn ghost"
+                style={{ padding: '4px 12px', fontSize: 13 }}
+              >
+                ▲
+              </button>
+              <button
+                onClick={() => moveCategory(i, 1)}
+                disabled={i === categories.length - 1}
+                className="btn ghost"
+                style={{ padding: '4px 12px', fontSize: 13 }}
+              >
+                ▼
+              </button>
+            </div>
+          ))}
         </div>
       </div>
     </div>
