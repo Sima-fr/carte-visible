@@ -12,6 +12,7 @@ function parsePrice(str) {
 
 export default function MenuPage() {
   const [dishes, setDishes] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [openCat, setOpenCat] = useState({});
@@ -28,8 +29,18 @@ export default function MenuPage() {
       if (!error) setDishes(data);
       setLoading(false);
     }
+    async function loadCategories() {
+      const { data } = await supabase.from('categories').select('*').order('position', { ascending: true });
+      if (data) setCategories(data);
+    }
     load();
+    loadCategories();
   }, []);
+
+  function categoryRank(name) {
+    const idx = categories.findIndex((c) => c.name === name);
+    return idx === -1 ? 999 : idx;
+  }
 
   const grouped = useMemo(() => {
     const tree = {};
@@ -172,7 +183,9 @@ export default function MenuPage() {
           <p style={{ color: 'var(--ink-dim)' }}>La carte n'a pas encore été mise à jour.</p>
         )}
 
-        {Object.entries(grouped).map(([catName, catData]) => {
+        {Object.entries(grouped)
+          .sort((a, b) => categoryRank(a[0]) - categoryRank(b[0]))
+          .map(([catName, catData]) => {
           const isOpen = !!openCat[catName];
           const hasSubs = Object.keys(catData.subs).length > 0;
           return (
