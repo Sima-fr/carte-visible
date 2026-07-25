@@ -123,3 +123,8 @@ a { color: inherit; }
   font-family: 'Big Shoulders Text', sans-serif; font-weight: 700; font-size: 15px;
   cursor: pointer; box-shadow: 0 8px 24px rgba(43,33,24,0.25); z-index: 10;
 }
+.dish-thumb {
+  width: 44px; height: 44px; border-radius: 8px; flex-shrink: 0;
+  background-size: cover; background-position: center; background-color: #EFE6D4;
+  border: 1px solid var(--line);
+}
