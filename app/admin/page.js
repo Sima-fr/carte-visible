@@ -16,6 +16,8 @@ export default function AdminPage() {
   const [price, setPrice] = useState('');
   const [category, setCategory] = useState('');
   const [subcategory, setSubcategory] = useState('');
+  const [description, setDescription] = useState('');
+  const [allergens, setAllergens] = useState('');
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -51,6 +53,11 @@ export default function AdminPage() {
 
   async function setRecommendedDrink(dishId, recommendedId) {
     await supabase.from('dishes').update({ recommended_dish_id: recommendedId || null }).eq('id', dishId);
+    loadDishes();
+  }
+
+  async function setRecommendationLabel(dishId, label) {
+    await supabase.from('dishes').update({ recommendation_label: label || 'Suggestion' }).eq('id', dishId);
     loadDishes();
   }
 
@@ -114,6 +121,8 @@ export default function AdminPage() {
       price: price.trim(),
       category: catName,
       subcategory: subcategory.trim() || null,
+      description: description.trim() || null,
+      allergens: allergens.trim() || null,
       photo_url,
       available: true,
     });
@@ -131,6 +140,8 @@ export default function AdminPage() {
       setPrice('');
       setCategory('');
       setSubcategory('');
+      setDescription('');
+      setAllergens('');
       setFile(null);
       setPreview(null);
       setFormOpen(false);
@@ -235,21 +246,39 @@ export default function AdminPage() {
                       {settings.show_recommendations && (
                         <div style={{ padding: '0 4px 10px 66px', borderBottom: '1px solid var(--line)' }}>
                           <label style={{ fontSize: 10.5, color: 'var(--ink-dim)', display: 'block', marginBottom: 3 }}>
-                            Boisson conseillée avec « {d.name} »
+                            Recommander avec « {d.name} »
                           </label>
-                          <select
-                            value={d.recommended_dish_id || ''}
-                            onChange={(e) => setRecommendedDrink(d.id, e.target.value)}
-                            style={{
-                              width: '100%', background: 'var(--paper)', border: '1px solid var(--line)',
-                              color: 'var(--ink)', padding: '7px 8px', borderRadius: 8, fontSize: 12.5,
-                            }}
-                          >
-                            <option value="">Aucune recommandation</option>
-                            {dishes.filter((other) => other.id !== d.id).map((other) => (
-                              <option key={other.id} value={other.id}>{other.name}</option>
-                            ))}
-                          </select>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <select
+                              value={d.recommended_dish_id || ''}
+                              onChange={(e) => setRecommendedDrink(d.id, e.target.value)}
+                              style={{
+                                flex: 1, background: 'var(--paper)', border: '1px solid var(--line)',
+                                color: 'var(--ink)', padding: '7px 8px', borderRadius: 8, fontSize: 12.5,
+                              }}
+                            >
+                              <option value="">Aucune recommandation</option>
+                              {dishes.filter((other) => other.id !== d.id).map((other) => (
+                                <option key={other.id} value={other.id}>{other.name}</option>
+                              ))}
+                            </select>
+                            {d.recommended_dish_id && (
+                              <select
+                                value={d.recommendation_label || 'Suggestion'}
+                                onChange={(e) => setRecommendationLabel(d.id, e.target.value)}
+                                style={{
+                                  background: 'var(--paper)', border: '1px solid var(--line)',
+                                  color: 'var(--ink)', padding: '7px 8px', borderRadius: 8, fontSize: 12.5,
+                                }}
+                              >
+                                <option value="Suggestion">Suggestion</option>
+                                <option value="Boisson conseillée">Boisson conseillée</option>
+                                <option value="Plat conseillé">Plat conseillé</option>
+                                <option value="Dessert conseillé">Dessert conseillé</option>
+                                <option value="Accord parfait">Accord parfait</option>
+                              </select>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -300,6 +329,14 @@ export default function AdminPage() {
               <div className="field">
                 <label>Sous-catégorie (optionnel)</label>
                 <input value={subcategory} onChange={(e) => setSubcategory(e.target.value)} placeholder="Ex. Tartes flambées" />
+              </div>
+              <div className="field">
+                <label>Description (optionnel)</label>
+                <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Ex. Sauce maison, légumes de saison…" />
+              </div>
+              <div className="field">
+                <label>Allergènes (optionnel)</label>
+                <input value={allergens} onChange={(e) => setAllergens(e.target.value)} placeholder="Ex. Gluten, lactose, fruits à coque" />
               </div>
               <button className="btn" style={{ width: '100%' }} disabled={saving} onClick={addDish}>
                 {saving ? 'Ajout en cours…' : 'Ajouter à la carte'}
