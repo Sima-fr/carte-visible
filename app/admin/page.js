@@ -8,6 +8,7 @@ import { formatPrice } from '../../lib/format';
 export default function AdminPage() {
   const [dishes, setDishes] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [settings, setSettings] = useState({ show_recommendations: false, track_stats: false });
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [openCat, setOpenCat] = useState({});
@@ -37,9 +38,26 @@ export default function AdminPage() {
     if (!error) setCategories(data);
   }
 
+  async function loadSettings() {
+    const { data, error } = await supabase.from('settings').select('*').eq('id', 1).single();
+    if (!error && data) setSettings(data);
+  }
+
+  async function toggleSetting(key) {
+    const next = { ...settings, [key]: !settings[key] };
+    setSettings(next);
+    await supabase.from('settings').update({ [key]: next[key] }).eq('id', 1);
+  }
+
+  async function setRecommendedDrink(dishId, recommendedId) {
+    await supabase.from('dishes').update({ recommended_dish_id: recommendedId || null }).eq('id', dishId);
+    loadDishes();
+  }
+
   useEffect(() => {
     loadDishes();
     loadCategories();
+    loadSettings();
   }, []);
 
   const grouped = useMemo(() => {
@@ -174,45 +192,66 @@ export default function AdminPage() {
                     <span className={`chevron ${isOpen ? 'open' : ''}`}>⌄</span>
                   </button>
                   {isOpen && catDishes.map((d) => (
-                    <div
-                      key={d.id}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 12,
-                        padding: '10px 4px', borderBottom: '1px solid var(--line)',
-                      }}
-                    >
+                    <div key={d.id}>
                       <div
                         style={{
-                          width: 50, height: 50, borderRadius: 10, flexShrink: 0,
-                          backgroundColor: '#EFE6D4', backgroundSize: 'cover', backgroundPosition: 'center',
-                          backgroundImage: d.photo_url ? `url('${d.photo_url}')` : 'none',
-                          border: '1px solid var(--line)',
+                          display: 'flex', alignItems: 'center', gap: 12,
+                          padding: '10px 4px', borderBottom: settings.show_recommendations ? 'none' : '1px solid var(--line)',
                         }}
-                      />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 600, fontSize: 14 }}>{d.name}</div>
-                        <div style={{ color: 'var(--ink-dim)', fontSize: 12.5 }}>{formatPrice(d.price)}</div>
-                        {d.subcategory && (
-                          <div style={{ color: 'var(--brass)', fontSize: 10.5, marginTop: 2 }}>{d.subcategory}</div>
-                        )}
+                      >
+                        <div
+                          style={{
+                            width: 50, height: 50, borderRadius: 10, flexShrink: 0,
+                            backgroundColor: '#EFE6D4', backgroundSize: 'cover', backgroundPosition: 'center',
+                            backgroundImage: d.photo_url ? `url('${d.photo_url}')` : 'none',
+                            border: '1px solid var(--line)',
+                          }}
+                        />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 600, fontSize: 14 }}>{d.name}</div>
+                          <div style={{ color: 'var(--ink-dim)', fontSize: 12.5 }}>{formatPrice(d.price)}</div>
+                          {d.subcategory && (
+                            <div style={{ color: 'var(--brass)', fontSize: 10.5, marginTop: 2 }}>{d.subcategory}</div>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => toggleAvailable(d)}
+                          className="btn ghost"
+                          style={{
+                            fontSize: 11, padding: '6px 10px', borderRadius: 999,
+                            color: d.available ? 'var(--herb)' : 'var(--brick)',
+                            borderColor: d.available ? 'rgba(76,107,65,0.35)' : 'rgba(184,84,58,0.35)',
+                          }}
+                        >
+                          {d.available ? 'Dispo' : 'Épuisé'}
+                        </button>
+                        <button
+                          onClick={() => deleteDish(d)}
+                          style={{ background: 'none', border: 'none', color: 'var(--ink-dim)', cursor: 'pointer', fontSize: 16 }}
+                        >
+                          ✕
+                        </button>
                       </div>
-                      <button
-                        onClick={() => toggleAvailable(d)}
-                        className="btn ghost"
-                        style={{
-                          fontSize: 11, padding: '6px 10px', borderRadius: 999,
-                          color: d.available ? 'var(--herb)' : 'var(--brick)',
-                          borderColor: d.available ? 'rgba(76,107,65,0.35)' : 'rgba(184,84,58,0.35)',
-                        }}
-                      >
-                        {d.available ? 'Dispo' : 'Épuisé'}
-                      </button>
-                      <button
-                        onClick={() => deleteDish(d)}
-                        style={{ background: 'none', border: 'none', color: 'var(--ink-dim)', cursor: 'pointer', fontSize: 16 }}
-                      >
-                        ✕
-                      </button>
+                      {settings.show_recommendations && (
+                        <div style={{ padding: '0 4px 10px 66px', borderBottom: '1px solid var(--line)' }}>
+                          <label style={{ fontSize: 10.5, color: 'var(--ink-dim)', display: 'block', marginBottom: 3 }}>
+                            Boisson conseillée avec « {d.name} »
+                          </label>
+                          <select
+                            value={d.recommended_dish_id || ''}
+                            onChange={(e) => setRecommendedDrink(d.id, e.target.value)}
+                            style={{
+                              width: '100%', background: 'var(--paper)', border: '1px solid var(--line)',
+                              color: 'var(--ink)', padding: '7px 8px', borderRadius: 8, fontSize: 12.5,
+                            }}
+                          >
+                            <option value="">Aucune recommandation</option>
+                            {dishes.filter((other) => other.id !== d.id).map((other) => (
+                              <option key={other.id} value={other.id}>{other.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -306,6 +345,37 @@ export default function AdminPage() {
               </button>
             </div>
           ))}
+        </div>
+
+        <div className="card" style={{ marginTop: 16 }}>
+          <h3 style={{ fontFamily: 'Fraunces, serif', margin: '0 0 4px' }}>Réglages</h3>
+          <p style={{ color: 'var(--ink-dim)', fontSize: 12.5, marginBottom: 10 }}>
+            Active ou désactive ces fonctionnalités selon tes besoins.
+          </p>
+          <div className="toggle-row">
+            <div>
+              <div className="toggle-label">Recommandations de boissons</div>
+              <div className="toggle-desc">Suggère une boisson conseillée quand le client regarde un plat.</div>
+            </div>
+            <button
+              className={`toggle-btn ${settings.show_recommendations ? 'on' : ''}`}
+              onClick={() => toggleSetting('show_recommendations')}
+            >
+              {settings.show_recommendations ? 'Activé' : 'Désactivé'}
+            </button>
+          </div>
+          <div className="toggle-row">
+            <div>
+              <div className="toggle-label">Statistiques</div>
+              <div className="toggle-desc">Suivi des plats commandés par jour et par service.</div>
+            </div>
+            <button
+              className={`toggle-btn ${settings.track_stats ? 'on' : ''}`}
+              onClick={() => toggleSetting('track_stats')}
+            >
+              {settings.track_stats ? 'Activé' : 'Désactivé'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
