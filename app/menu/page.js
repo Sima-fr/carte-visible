@@ -8,6 +8,7 @@ import { formatPrice } from '../../lib/format';
 export default function MenuPage() {
   const [dishes, setDishes] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [settings, setSettings] = useState({ show_recommendations: false });
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [openCat, setOpenCat] = useState({});
@@ -28,8 +29,13 @@ export default function MenuPage() {
       const { data } = await supabase.from('categories').select('*').order('position', { ascending: true });
       if (data) setCategories(data);
     }
+    async function loadSettings() {
+      const { data } = await supabase.from('settings').select('*').eq('id', 1).single();
+      if (data) setSettings(data);
+    }
     load();
     loadCategories();
+    loadSettings();
   }, []);
 
   function categoryRank(name) {
@@ -106,7 +112,26 @@ export default function MenuPage() {
           </div>
           <div style={{ fontFamily: 'Fraunces, serif', fontSize: 24, fontWeight: 700 }}>{selected.name}</div>
           <div style={{ color: 'var(--wine)', fontWeight: 700, fontSize: 15, marginBottom: 16 }}>{formatPrice(selected.price)}</div>
-          <button className="btn" onClick={() => { addToCart(selected); setSelected(null); }}>
+
+          {settings.show_recommendations && selected.recommended_dish_id && (() => {
+            const reco = dishes.find((d) => d.id === selected.recommended_dish_id);
+            if (!reco) return null;
+            return (
+              <div className="recommend-box" onClick={() => setSelected(reco)}>
+                <div
+                  className="dish-thumb"
+                  style={{ width: 52, height: 52, backgroundImage: reco.photo_url ? `url('${reco.photo_url}')` : 'none' }}
+                />
+                <div>
+                  <div className="recommend-label">Ça se marie bien avec</div>
+                  <div style={{ fontWeight: 700, fontSize: 14 }}>{reco.name}</div>
+                  <div style={{ color: 'var(--ink-dim)', fontSize: 12 }}>{formatPrice(reco.price)}</div>
+                </div>
+              </div>
+            );
+          })()}
+
+          <button className="btn" style={{ marginTop: 16 }} onClick={() => { addToCart(selected); setSelected(null); }}>
             + Ajouter à ma commande
           </button>
         </div>
