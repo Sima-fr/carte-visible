@@ -52,5 +52,7 @@ export default function AdminPage() {
     return tree;
   }, [dishes]);
 
-  function categoryRank(catName) {
-    const idx = categories.findIndex((c) =>
+ function categoryRank(catName) {
+    const idx = categories.findIndex((c) => c.name === catName);
+    return idx === -1 ? 999 : idx;
+  }
