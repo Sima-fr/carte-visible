@@ -111,7 +111,13 @@ export default function MenuPage() {
             )}
           </div>
           <div style={{ fontFamily: 'Fraunces, serif', fontSize: 24, fontWeight: 700 }}>{selected.name}</div>
-          <div style={{ color: 'var(--wine)', fontWeight: 700, fontSize: 15, marginBottom: 16 }}>{formatPrice(selected.price)}</div>
+          <div style={{ color: 'var(--wine)', fontWeight: 700, fontSize: 15, marginBottom: 8 }}>{formatPrice(selected.price)}</div>
+          {selected.description && (
+            <p style={{ color: 'var(--ink-dim)', fontSize: 13.5, lineHeight: 1.5, marginBottom: 6 }}>{selected.description}</p>
+          )}
+          {selected.allergens && (
+            <p style={{ color: 'var(--brass)', fontSize: 11.5, marginBottom: 16 }}>Allergènes : {selected.allergens}</p>
+          )}
 
           {settings.show_recommendations && selected.recommended_dish_id && (() => {
             const reco = dishes.find((d) => d.id === selected.recommended_dish_id);
@@ -123,7 +129,7 @@ export default function MenuPage() {
                   style={{ width: 52, height: 52, backgroundImage: reco.photo_url ? `url('${reco.photo_url}')` : 'none' }}
                 />
                 <div>
-                  <div className="recommend-label">Ça se marie bien avec</div>
+                  <div className="recommend-label">{selected.recommendation_label || 'Suggestion'}</div>
                   <div style={{ fontWeight: 700, fontSize: 14 }}>{reco.name}</div>
                   <div style={{ color: 'var(--ink-dim)', fontSize: 12 }}>{formatPrice(reco.price)}</div>
                 </div>
@@ -194,7 +200,7 @@ export default function MenuPage() {
       <div className="header">
         <div className="eyebrow">Le Petit Basilic</div>
         <h1 className="title">La carte</h1>
-        <p className="sub">Cette liste vous permet de composer votre commande sans rien oublier — touchez un plat pour voir sa photo en grand.</p>
+        <p className="sub">Un coup d'œil avant de commander : touchez un plat pour voir la photo en grand — ou ajoutez-le directement à votre commande.</p>
       </div>
 
       <div style={{ padding: '0 20px 90px' }}>
@@ -221,7 +227,7 @@ export default function MenuPage() {
               {isOpen && (
                 <div className="accordion-body">
                   {catData.direct.map((d) => (
-                    <DishRow key={d.id} dish={d} onView={() => setSelected(d)} onAdd={() => addToCart(d)} />
+                    <DishRow key={d.id} dish={d} dishes={dishes} settings={settings} onView={() => setSelected(d)} onAdd={() => addToCart(d)} />
                   ))}
 
                   {hasSubs && Object.entries(catData.subs).map(([subName, subDishes]) => {
@@ -239,7 +245,7 @@ export default function MenuPage() {
                         {subIsOpen && (
                           <div className="accordion-subbody">
                             {subDishes.map((d) => (
-                              <DishRow key={d.id} dish={d} onView={() => setSelected(d)} onAdd={() => addToCart(d)} />
+                              <DishRow key={d.id} dish={d} dishes={dishes} settings={settings} onView={() => setSelected(d)} onAdd={() => addToCart(d)} />
                             ))}
                           </div>
                         )}
@@ -263,7 +269,10 @@ export default function MenuPage() {
   );
 }
 
-function DishRow({ dish, onView, onAdd }) {
+function DishRow({ dish, dishes, settings, onView, onAdd }) {
+  const reco = settings?.show_recommendations && dish.recommended_dish_id
+    ? dishes.find((d) => d.id === dish.recommended_dish_id)
+    : null;
   return (
     <div className={`dish-row ${!dish.available ? 'unavailable' : ''}`}>
       <div
@@ -279,7 +288,15 @@ function DishRow({ dish, onView, onAdd }) {
           {dish.name}
           {!dish.available && <span className="badge-epuise">Épuisé</span>}
         </div>
+        {dish.description && (
+          <div style={{ color: 'var(--ink-dim)', fontSize: 11.5, marginTop: 1 }}>{dish.description}</div>
+        )}
         <div style={{ color: 'var(--wine)', fontSize: 13, fontWeight: 600, marginTop: 2 }}>{formatPrice(dish.price)}</div>
+        {reco && (
+          <div style={{ color: 'var(--brass)', fontSize: 11, marginTop: 2, fontWeight: 600 }}>
+            {dish.recommendation_label || 'Suggestion'} : {reco.name}
+          </div>
+        )}
       </div>
       {dish.available && (
         <button onClick={onAdd} className="plus-btn" aria-label="Ajouter à la commande">+</button>
