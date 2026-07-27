@@ -110,13 +110,12 @@ export default function MenuPage() {
               </div>
             )}
           </div>
-          <div style={{ fontFamily: 'Fraunces, serif', fontSize: 24, fontWeight: 700 }}>{selected.name}</div>
-          <div style={{ color: 'var(--wine)', fontWeight: 700, fontSize: 15, marginBottom: 8 }}>{formatPrice(selected.price)}</div>
+          <div style={{ fontFamily: 'Fraunces, serif', fontSize: 24, fontWeight: 700, marginBottom: 4 }}>{selected.name}</div>
           {selected.description && (
             <p style={{ color: 'var(--ink-dim)', fontSize: 13.5, lineHeight: 1.5, marginBottom: 6 }}>{selected.description}</p>
           )}
           {selected.allergens && (
-            <p style={{ color: 'var(--brass)', fontSize: 11.5, marginBottom: 16 }}>Allergènes : {selected.allergens}</p>
+            <p style={{ color: 'var(--brass)', fontSize: 11.5, marginBottom: 6 }}>Allergènes : {selected.allergens}</p>
           )}
 
           {settings.show_recommendations && selected.recommended_dish_id && (() => {
@@ -137,7 +136,9 @@ export default function MenuPage() {
             );
           })()}
 
-          <button className="btn" style={{ marginTop: 16 }} onClick={() => { addToCart(selected); setSelected(null); }}>
+          <div style={{ color: 'var(--wine)', fontWeight: 700, fontSize: 17, margin: '16px 0' }}>{formatPrice(selected.price)}</div>
+
+          <button className="btn" onClick={() => { addToCart(selected); setSelected(null); }}>
             + Ajouter à ma commande
           </button>
         </div>
@@ -291,12 +292,12 @@ function DishRow({ dish, dishes, settings, onView, onAdd }) {
         {dish.description && (
           <div style={{ color: 'var(--ink-dim)', fontSize: 11.5, marginTop: 1 }}>{dish.description}</div>
         )}
-        <div style={{ color: 'var(--wine)', fontSize: 13, fontWeight: 600, marginTop: 2 }}>{formatPrice(dish.price)}</div>
         {reco && (
           <div style={{ color: 'var(--brass)', fontSize: 11, marginTop: 2, fontWeight: 600 }}>
             {dish.recommendation_label || 'Suggestion'} : {reco.name}
           </div>
         )}
+        <div style={{ color: 'var(--wine)', fontSize: 13, fontWeight: 600, marginTop: 2 }}>{formatPrice(dish.price)}</div>
       </div>
       {dish.available && (
         <button onClick={onAdd} className="plus-btn" aria-label="Ajouter à la commande">+</button>
