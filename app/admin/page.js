@@ -5,19 +5,25 @@ import { supabase } from '../../lib/supabaseClient';
 import { resizeImage } from '../../lib/resizeImage';
 import { formatPrice } from '../../lib/format';
 
+const ALLERGEN_LIST = [
+  'Gluten', 'Crustacés', 'Œufs', 'Poissons', 'Arachides', 'Soja', 'Lait',
+  'Fruits à coque', 'Céleri', 'Moutarde', 'Sésame', 'Sulfites', 'Lupin', 'Mollusques',
+];
+
+const emptyForm = {
+  name: '', price: '', category: '', newCategory: '', subcategory: '',
+  description: '', allergensChecked: [], allergensCustom: '',
+};
+
 export default function AdminPage() {
   const [dishes, setDishes] = useState([]);
   const [categories, setCategories] = useState([]);
   const [settings, setSettings] = useState({ show_recommendations: false, track_stats: false });
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [openCat, setOpenCat] = useState({});
-  const [name, setName] = useState('');
-  const [price, setPrice] = useState('');
-  const [category, setCategory] = useState('');
-  const [subcategory, setSubcategory] = useState('');
-  const [description, setDescription] = useState('');
-  const [allergens, setAllergens] = useState('');
+  const [form, setForm] = useState(emptyForm);
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -30,6 +36,7 @@ export default function AdminPage() {
       .order('created_at', { ascending: false });
     if (!error) setDishes(data);
     setLoading(false);
+    return data || [];
   }
 
   async function loadCategories() {
@@ -38,6 +45,7 @@ export default function AdminPage() {
       .select('*')
       .order('position', { ascending: true });
     if (!error) setCategories(data);
+    return data || [];
   }
 
   async function loadSettings() {
@@ -45,26 +53,25 @@ export default function AdminPage() {
     if (!error && data) setSettings(data);
   }
 
-  async function toggleSetting(key) {
-    const next = { ...settings, [key]: !settings[key] };
-    setSettings(next);
-    await supabase.from('settings').update({ [key]: next[key] }).eq('id', 1);
-  }
-
-  async function setRecommendedDrink(dishId, recommendedId) {
-    await supabase.from('dishes').update({ recommended_dish_id: recommendedId || null }).eq('id', dishId);
-    loadDishes();
-  }
-
-  async function setRecommendationLabel(dishId, label) {
-    await supabase.from('dishes').update({ recommendation_label: label || 'Suggestion' }).eq('id', dishId);
-    loadDishes();
+  async function syncCategories(dishesData, categoriesData) {
+    const known = new Set(categoriesData.map((c) => c.name));
+    const found = new Set(dishesData.map((d) => d.category || 'Plats'));
+    const missing = [...found].filter((name) => !known.has(name));
+    if (missing.length === 0) return;
+    let maxPos = categoriesData.length ? Math.max(...categoriesData.map((c) => c.position)) : -1;
+    for (const name of missing) {
+      maxPos += 1;
+      await supabase.from('categories').insert({ name, position: maxPos });
+    }
+    loadCategories();
   }
 
   useEffect(() => {
-    loadDishes();
-    loadCategories();
-    loadSettings();
+    (async () => {
+      const [dishesData, categoriesData] = await Promise.all([loadDishes(), loadCategories()]);
+      loadSettings();
+      syncCategories(dishesData, categoriesData);
+    })();
   }, []);
 
   const grouped = useMemo(() => {
@@ -89,11 +96,64 @@ export default function AdminPage() {
     setPreview(URL.createObjectURL(f));
   }
 
-  async function addDish() {
-    if (!name.trim() || !price.trim()) return;
+  function updateForm(patch) {
+    setForm((f) => ({ ...f, ...patch }));
+  }
+
+  function toggleAllergen(name) {
+    setForm((f) => {
+      const has = f.allergensChecked.includes(name);
+      return {
+        ...f,
+        allergensChecked: has
+          ? f.allergensChecked.filter((a) => a !== name)
+          : [...f.allergensChecked, name],
+      };
+    });
+  }
+
+  function startAdd() {
+    setEditingId(null);
+    setForm(emptyForm);
+    setFile(null);
+    setPreview(null);
+    setFormOpen(true);
+  }
+
+  function startEdit(dish) {
+    const existingAllergens = (dish.allergens || '').split(',').map((a) => a.trim()).filter(Boolean);
+    const checked = existingAllergens.filter((a) => ALLERGEN_LIST.includes(a));
+    const custom = existingAllergens.filter((a) => !ALLERGEN_LIST.includes(a)).join(', ');
+    setEditingId(dish.id);
+    setForm({
+      name: dish.name || '',
+      price: dish.price || '',
+      category: dish.category || '',
+      newCategory: '',
+      subcategory: dish.subcategory || '',
+      description: dish.description || '',
+      allergensChecked: checked,
+      allergensCustom: custom,
+    });
+    setFile(null);
+    setPreview(dish.photo_url || null);
+    setFormOpen(true);
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function cancelForm() {
+    setFormOpen(false);
+    setEditingId(null);
+    setForm(emptyForm);
+    setFile(null);
+    setPreview(null);
+  }
+
+  async function saveDish() {
+    if (!form.name.trim() || !form.price.trim()) return;
     setSaving(true);
 
-    let photo_url = null;
+    let photo_url = editingId ? (dishes.find((d) => d.id === editingId)?.photo_url ?? null) : null;
     if (file) {
       let toUpload = file;
       try {
@@ -114,40 +174,49 @@ export default function AdminPage() {
       photo_url = publicUrlData.publicUrl;
     }
 
-    const catName = category.trim() || 'Plats';
+    const catName = (form.category === '__new__' ? form.newCategory.trim() : form.category.trim()) || 'Plats';
+    const allergensCombined = [...form.allergensChecked, ...form.allergensCustom.split(',').map((a) => a.trim()).filter(Boolean)].join(', ');
 
-    const { error } = await supabase.from('dishes').insert({
-      name: name.trim(),
-      price: price.trim(),
+    const payload = {
+      name: form.name.trim(),
+      price: form.price.trim(),
       category: catName,
-      subcategory: subcategory.trim() || null,
-      description: description.trim() || null,
-      allergens: allergens.trim() || null,
+      subcategory: form.subcategory.trim() || null,
+      description: form.description.trim() || null,
+      allergens: allergensCombined || null,
       photo_url,
-      available: true,
-    });
+    };
+
+    let error;
+    if (editingId) {
+      ({ error } = await supabase.from('dishes').update(payload).eq('id', editingId));
+    } else {
+      ({ error } = await supabase.from('dishes').insert({ ...payload, available: true }));
+    }
 
     if (error) {
-      alert("Erreur lors de l'ajout du plat : " + error.message);
+      alert("Erreur lors de l'enregistrement : " + error.message);
     } else {
-      const existing = categories.find((c) => c.name === catName);
-      if (!existing) {
+      const existingCat = categories.find((c) => c.name === catName);
+      if (!existingCat) {
         const maxPos = categories.length ? Math.max(...categories.map((c) => c.position)) : -1;
         await supabase.from('categories').insert({ name: catName, position: maxPos + 1 });
         loadCategories();
       }
-      setName('');
-      setPrice('');
-      setCategory('');
-      setSubcategory('');
-      setDescription('');
-      setAllergens('');
-      setFile(null);
-      setPreview(null);
-      setFormOpen(false);
+      cancelForm();
       loadDishes();
     }
     setSaving(false);
+  }
+
+  async function setRecommendedDrink(dishId, recommendedId) {
+    await supabase.from('dishes').update({ recommended_dish_id: recommendedId || null }).eq('id', dishId);
+    loadDishes();
+  }
+
+  async function setRecommendationLabel(dishId, label) {
+    await supabase.from('dishes').update({ recommendation_label: label || 'Suggestion' }).eq('id', dishId);
+    loadDishes();
   }
 
   async function moveCategory(index, dir) {
@@ -167,6 +236,7 @@ export default function AdminPage() {
 
   async function deleteDish(dish) {
     await supabase.from('dishes').delete().eq('id', dish.id);
+    if (editingId === dish.id) cancelForm();
     loadDishes();
   }
 
@@ -225,6 +295,13 @@ export default function AdminPage() {
                             <div style={{ color: 'var(--brass)', fontSize: 10.5, marginTop: 2 }}>{d.subcategory}</div>
                           )}
                         </div>
+                        <button
+                          onClick={() => startEdit(d)}
+                          className="btn ghost"
+                          style={{ fontSize: 11, padding: '6px 10px', borderRadius: 999 }}
+                        >
+                          Modifier
+                        </button>
                         <button
                           onClick={() => toggleAvailable(d)}
                           className="btn ghost"
@@ -287,12 +364,18 @@ export default function AdminPage() {
               );
             })}
 
-          <button className="btn ghost" style={{ width: '100%', marginTop: 12 }} onClick={() => setFormOpen(!formOpen)}>
-            + Ajouter un plat
-          </button>
+          {!formOpen && (
+            <button className="btn ghost" style={{ width: '100%', marginTop: 12 }} onClick={startAdd}>
+              + Ajouter un plat
+            </button>
+          )}
 
           {formOpen && (
             <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px dashed var(--line)' }}>
+              <h4 style={{ fontFamily: 'Fraunces, serif', fontSize: 15, margin: '0 0 10px' }}>
+                {editingId ? 'Modifier le plat' : 'Nouveau plat'}
+              </h4>
+
               <div className="field">
                 <label>Photo du plat</label>
                 <label
@@ -309,38 +392,89 @@ export default function AdminPage() {
                     }}
                   />
                   <span style={{ fontSize: 12.5, color: 'var(--ink-dim)' }}>
-                    {file ? file.name : 'Choisir une photo…'}
+                    {file ? file.name : preview ? 'Remplacer la photo…' : 'Choisir une photo…'}
                   </span>
                   <input type="file" accept="image/*" onChange={onFileChange} style={{ display: 'none' }} />
                 </label>
               </div>
+
               <div className="field">
                 <label>Nom du plat</label>
-                <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex. Burrata, tomates confites" />
+                <input value={form.name} onChange={(e) => updateForm({ name: e.target.value })} placeholder="Ex. Burrata, tomates confites" />
               </div>
-              <div className="field">
-                <label>Prix (en €)</label>
-                <input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Ex. 14 ou 14,50" />
-              </div>
-              <div className="field">
-                <label>Catégorie</label>
-                <input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Ex. Les entrées, Les plats, Desserts…" />
-              </div>
-              <div className="field">
-                <label>Sous-catégorie (optionnel)</label>
-                <input value={subcategory} onChange={(e) => setSubcategory(e.target.value)} placeholder="Ex. Tartes flambées" />
-              </div>
+
               <div className="field">
                 <label>Description (optionnel)</label>
-                <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Ex. Sauce maison, légumes de saison…" />
+                <input value={form.description} onChange={(e) => updateForm({ description: e.target.value })} placeholder="Ex. Sauce maison, légumes de saison…" />
               </div>
+
+              <div className="field">
+                <label>Catégorie</label>
+                <select
+                  value={form.category}
+                  onChange={(e) => updateForm({ category: e.target.value })}
+                  style={{
+                    width: '100%', background: 'var(--paper)', border: '1px solid var(--line)', color: 'var(--ink)',
+                    padding: '9px 10px', borderRadius: 8, fontSize: 13.5,
+                  }}
+                >
+                  <option value="">Choisir une catégorie…</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.name}>{c.name}</option>
+                  ))}
+                  <option value="__new__">+ Nouvelle catégorie…</option>
+                </select>
+                {form.category === '__new__' && (
+                  <input
+                    style={{ marginTop: 8 }}
+                    value={form.newCategory}
+                    onChange={(e) => updateForm({ newCategory: e.target.value })}
+                    placeholder="Nom de la nouvelle catégorie"
+                  />
+                )}
+              </div>
+
+              <div className="field">
+                <label>Sous-catégorie (optionnel)</label>
+                <input value={form.subcategory} onChange={(e) => updateForm({ subcategory: e.target.value })} placeholder="Ex. Tartes flambées" />
+              </div>
+
               <div className="field">
                 <label>Allergènes (optionnel)</label>
-                <input value={allergens} onChange={(e) => setAllergens(e.target.value)} placeholder="Ex. Gluten, lactose, fruits à coque" />
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                  {ALLERGEN_LIST.map((a) => {
+                    const checked = form.allergensChecked.includes(a);
+                    return (
+                      <button
+                        key={a}
+                        type="button"
+                        onClick={() => toggleAllergen(a)}
+                        className={`toggle-btn ${checked ? 'on' : ''}`}
+                        style={{ marginLeft: 0 }}
+                      >
+                        {a}
+                      </button>
+                    );
+                  })}
+                </div>
+                <input
+                  value={form.allergensCustom}
+                  onChange={(e) => updateForm({ allergensCustom: e.target.value })}
+                  placeholder="Autre allergène (séparé par une virgule)"
+                />
               </div>
-              <button className="btn" style={{ width: '100%' }} disabled={saving} onClick={addDish}>
-                {saving ? 'Ajout en cours…' : 'Ajouter à la carte'}
-              </button>
+
+              <div className="field">
+                <label>Prix (en €)</label>
+                <input value={form.price} onChange={(e) => updateForm({ price: e.target.value })} placeholder="Ex. 14 ou 14,50" />
+              </div>
+
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn" style={{ flex: 1 }} disabled={saving} onClick={saveDish}>
+                  {saving ? 'Enregistrement…' : editingId ? 'Enregistrer les modifications' : 'Ajouter à la carte'}
+                </button>
+                <button className="btn ghost" onClick={cancelForm}>Annuler</button>
+              </div>
             </div>
           )}
         </div>
@@ -417,4 +551,10 @@ export default function AdminPage() {
       </div>
     </div>
   );
+
+  async function toggleSetting(key) {
+    const next = { ...settings, [key]: !settings[key] };
+    setSettings(next);
+    await supabase.from('settings').update({ [key]: next[key] }).eq('id', 1);
+  }
 }
