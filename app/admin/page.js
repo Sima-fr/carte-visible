@@ -23,6 +23,8 @@ export default function AdminPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [openCat, setOpenCat] = useState({});
+  const [renamingId, setRenamingId] = useState(null);
+  const [renameValue, setRenameValue] = useState('');
   const [form, setForm] = useState(emptyForm);
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -226,6 +228,35 @@ export default function AdminPage() {
     const b = categories[other];
     await supabase.from('categories').update({ position: b.position }).eq('id', a.id);
     await supabase.from('categories').update({ position: a.position }).eq('id', b.id);
+    loadCategories();
+  }
+
+  async function renameCategory(cat, newName) {
+    const trimmed = newName.trim();
+    if (!trimmed || trimmed === cat.name) {
+      setRenamingId(null);
+      return;
+    }
+    const target = categories.find((c) => c.name === trimmed && c.id !== cat.id);
+    if (target) {
+      await supabase.from('dishes').update({ category: trimmed }).eq('category', cat.name);
+      await supabase.from('categories').delete().eq('id', cat.id);
+    } else {
+      await supabase.from('categories').update({ name: trimmed }).eq('id', cat.id);
+      await supabase.from('dishes').update({ category: trimmed }).eq('category', cat.name);
+    }
+    setRenamingId(null);
+    loadCategories();
+    loadDishes();
+  }
+
+  async function deleteCategory(cat) {
+    const count = grouped[cat.name]?.length || 0;
+    if (count > 0) {
+      alert(`« ${cat.name} » contient encore ${count} plat${count > 1 ? 's' : ''}. Renomme-la vers une autre catégorie pour fusionner, ou déplace/supprime d'abord ses plats.`);
+      return;
+    }
+    await supabase.from('categories').delete().eq('id', cat.id);
     loadCategories();
   }
 
@@ -482,7 +513,7 @@ export default function AdminPage() {
         <div className="card" style={{ marginTop: 16 }}>
           <h3 style={{ fontFamily: 'Fraunces, serif', margin: '0 0 14px' }}>Ordre des catégories</h3>
           <p style={{ color: 'var(--ink-dim)', fontSize: 12.5, marginTop: -8, marginBottom: 14 }}>
-            L'ordre choisi ici est celui qui s'affiche côté client.
+            L'ordre choisi ici est celui qui s'affiche côté client. Renomme une catégorie vers le nom d'une autre pour les fusionner (utile si tu as un doublon comme « entrées » et « Les entrées »).
           </p>
           {categories.length === 0 && (
             <p style={{ color: 'var(--ink-dim)', fontSize: 13 }}>
@@ -493,27 +524,66 @@ export default function AdminPage() {
             <div
               key={c.id}
               style={{
-                display: 'flex', alignItems: 'center', gap: 10,
+                display: 'flex', alignItems: 'center', gap: 8,
                 padding: '9px 4px', borderBottom: '1px solid var(--line)',
               }}
             >
-              <div style={{ flex: 1, fontWeight: 600, fontSize: 14 }}>{c.name}</div>
-              <button
-                onClick={() => moveCategory(i, -1)}
-                disabled={i === 0}
-                className="btn ghost"
-                style={{ padding: '4px 12px', fontSize: 13 }}
-              >
-                ▲
-              </button>
-              <button
-                onClick={() => moveCategory(i, 1)}
-                disabled={i === categories.length - 1}
-                className="btn ghost"
-                style={{ padding: '4px 12px', fontSize: 13 }}
-              >
-                ▼
-              </button>
+              {renamingId === c.id ? (
+                <>
+                  <input
+                    autoFocus
+                    value={renameValue}
+                    onChange={(e) => setRenameValue(e.target.value)}
+                    style={{ flex: 1 }}
+                  />
+                  <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => renameCategory(c, renameValue)}>
+                    OK
+                  </button>
+                  <button
+                    className="btn ghost"
+                    style={{ padding: '4px 10px', fontSize: 12 }}
+                    onClick={() => setRenamingId(null)}
+                  >
+                    Annuler
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div style={{ flex: 1, fontWeight: 600, fontSize: 14 }}>
+                    {c.name} <span style={{ color: 'var(--ink-dim)', fontWeight: 400, fontSize: 12 }}>({grouped[c.name]?.length || 0})</span>
+                  </div>
+                  <button
+                    onClick={() => { setRenamingId(c.id); setRenameValue(c.name); }}
+                    className="btn ghost"
+                    style={{ padding: '4px 10px', fontSize: 12 }}
+                  >
+                    Renommer
+                  </button>
+                  <button
+                    onClick={() => moveCategory(i, -1)}
+                    disabled={i === 0}
+                    className="btn ghost"
+                    style={{ padding: '4px 12px', fontSize: 13 }}
+                  >
+                    ▲
+                  </button>
+                  <button
+                    onClick={() => moveCategory(i, 1)}
+                    disabled={i === categories.length - 1}
+                    className="btn ghost"
+                    style={{ padding: '4px 12px', fontSize: 13 }}
+                  >
+                    ▼
+                  </button>
+                  <button
+                    onClick={() => deleteCategory(c)}
+                    style={{ background: 'none', border: 'none', color: 'var(--ink-dim)', cursor: 'pointer', fontSize: 16 }}
+                    title="Supprimer (catégorie vide uniquement)"
+                  >
+                    ✕
+                  </button>
+                </>
+              )}
             </div>
           ))}
         </div>
