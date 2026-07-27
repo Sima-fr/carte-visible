@@ -1,307 +1,630 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import Image from 'next/image';
 import { supabase } from '../../lib/supabaseClient';
+import { resizeImage } from '../../lib/resizeImage';
 import { formatPrice } from '../../lib/format';
 
-export default function MenuPage() {
+const ALLERGEN_LIST = [
+  'Gluten', 'Crustacés', 'Œufs', 'Poissons', 'Arachides', 'Soja', 'Lait',
+  'Fruits à coque', 'Céleri', 'Moutarde', 'Sésame', 'Sulfites', 'Lupin', 'Mollusques',
+];
+
+const emptyForm = {
+  name: '', price: '', category: '', newCategory: '', subcategory: '',
+  description: '', allergensChecked: [], allergensCustom: '',
+};
+
+export default function AdminPage() {
   const [dishes, setDishes] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [settings, setSettings] = useState({ show_recommendations: false });
+  const [settings, setSettings] = useState({ show_recommendations: false, track_stats: false });
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [openCat, setOpenCat] = useState({});
-  const [openSub, setOpenSub] = useState({});
-  const [cart, setCart] = useState({});
-  const [cartOpen, setCartOpen] = useState(false);
+  const [renamingId, setRenamingId] = useState(null);
+  const [renameValue, setRenameValue] = useState('');
+  const [form, setForm] = useState(emptyForm);
+  const [file, setFile] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  async function loadDishes() {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('dishes')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (!error) setDishes(data);
+    setLoading(false);
+    return data || [];
+  }
+
+  async function loadCategories() {
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .order('position', { ascending: true });
+    if (!error) setCategories(data);
+    return data || [];
+  }
+
+  async function loadSettings() {
+    const { data, error } = await supabase.from('settings').select('*').eq('id', 1).single();
+    if (!error && data) setSettings(data);
+  }
+
+  async function syncCategories(dishesData, categoriesData) {
+    const known = new Set(categoriesData.map((c) => c.name));
+    const found = new Set(dishesData.map((d) => d.category || 'Plats'));
+    const missing = [...found].filter((name) => !known.has(name));
+    if (missing.length === 0) return;
+    let maxPos = categoriesData.length ? Math.max(...categoriesData.map((c) => c.position)) : -1;
+    for (const name of missing) {
+      maxPos += 1;
+      await supabase.from('categories').insert({ name, position: maxPos });
+    }
+    loadCategories();
+  }
 
   useEffect(() => {
-    async function load() {
-      const { data, error } = await supabase
-        .from('dishes')
-        .select('*')
-        .order('created_at', { ascending: false });
-      if (!error) setDishes(data);
-      setLoading(false);
-    }
-    async function loadCategories() {
-      const { data } = await supabase.from('categories').select('*').order('position', { ascending: true });
-      if (data) setCategories(data);
-    }
-    async function loadSettings() {
-      const { data } = await supabase.from('settings').select('*').eq('id', 1).single();
-      if (data) setSettings(data);
-    }
-    load();
-    loadCategories();
-    loadSettings();
+    (async () => {
+      const [dishesData, categoriesData] = await Promise.all([loadDishes(), loadCategories()]);
+      loadSettings();
+      syncCategories(dishesData, categoriesData);
+    })();
   }, []);
-
-  function categoryRank(name) {
-    const idx = categories.findIndex((c) => c.name === name);
-    return idx === -1 ? 999 : idx;
-  }
 
   const grouped = useMemo(() => {
     const tree = {};
     for (const d of dishes) {
       const cat = d.category || 'Plats';
-      const sub = d.subcategory || null;
-      if (!tree[cat]) tree[cat] = { direct: [], subs: {} };
-      if (sub) {
-        if (!tree[cat].subs[sub]) tree[cat].subs[sub] = [];
-        tree[cat].subs[sub].push(d);
-      } else {
-        tree[cat].direct.push(d);
-      }
+      if (!tree[cat]) tree[cat] = [];
+      tree[cat].push(d);
     }
     return tree;
   }, [dishes]);
 
-  function addToCart(dish) {
-    setCart((c) => ({ ...c, [dish.id]: (c[dish.id] || 0) + 1 }));
+  function categoryRank(catName) {
+    const idx = categories.findIndex((c) => c.name === catName);
+    return idx === -1 ? 999 : idx;
   }
-  function decFromCart(dishId) {
-    setCart((c) => {
-      const n = (c[dishId] || 0) - 1;
-      const next = { ...c };
-      if (n <= 0) delete next[dishId];
-      else next[dishId] = n;
-      return next;
+
+  function onFileChange(e) {
+    const f = e.target.files[0];
+    if (!f) return;
+    setFile(f);
+    setPreview(URL.createObjectURL(f));
+  }
+
+  function updateForm(patch) {
+    setForm((f) => ({ ...f, ...patch }));
+  }
+
+  function toggleAllergen(name) {
+    setForm((f) => {
+      const has = f.allergensChecked.includes(name);
+      return {
+        ...f,
+        allergensChecked: has
+          ? f.allergensChecked.filter((a) => a !== name)
+          : [...f.allergensChecked, name],
+      };
     });
   }
 
-  const cartItems = Object.entries(cart)
-    .map(([id, qty]) => ({ dish: dishes.find((d) => d.id === id), qty }))
-    .filter((i) => i.dish);
-  const cartCount = cartItems.reduce((sum, i) => sum + i.qty, 0);
-  const cartTotal = cartItems.reduce((sum, i) => sum + i.qty * (i.dish.price ? parseFloat(String(i.dish.price).replace(',', '.').match(/[\d.]+/)?.[0] || 0) : 0), 0);
-
-  // ---------- Photo detail overlay ----------
-  if (selected) {
-    return (
-      <div className="wrap">
-        <div className="awning" />
-        <div style={{ padding: '20px' }}>
-          <button
-            onClick={() => setSelected(null)}
-            style={{
-              background: 'none', border: 'none', color: 'var(--ink-dim)', fontSize: 12,
-              cursor: 'pointer', marginBottom: 14, textTransform: 'uppercase',
-              letterSpacing: '0.04em', fontFamily: "'Big Shoulders Text', sans-serif",
-            }}
-          >
-            ‹ Retour à la carte
-          </button>
-          <div style={{ position: 'relative', width: '100%', height: 320, borderRadius: 14, overflow: 'hidden', marginBottom: 14, background: '#EFE6D4' }}>
-            {selected.photo_url ? (
-              <Image
-                src={selected.photo_url}
-                alt={selected.name}
-                fill
-                sizes="(max-width: 600px) 100vw, 600px"
-                style={{ objectFit: 'cover' }}
-                priority
-              />
-            ) : (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--ink-dim)', fontSize: 13 }}>
-                Pas encore de photo
-              </div>
-            )}
-          </div>
-          <div style={{ fontFamily: 'Fraunces, serif', fontSize: 24, fontWeight: 700, marginBottom: 4 }}>{selected.name}</div>
-          {selected.description && (
-            <p style={{ color: 'var(--ink-dim)', fontSize: 13.5, lineHeight: 1.5, marginBottom: 6 }}>{selected.description}</p>
-          )}
-          {selected.allergens && (
-            <p style={{ color: 'var(--brass)', fontSize: 11.5, marginBottom: 6 }}>Allergènes : {selected.allergens}</p>
-          )}
-
-          {settings.show_recommendations && selected.recommended_dish_id && (() => {
-            const reco = dishes.find((d) => d.id === selected.recommended_dish_id);
-            if (!reco) return null;
-            return (
-              <div className="recommend-box" onClick={() => setSelected(reco)}>
-                <div
-                  className="dish-thumb"
-                  style={{ width: 52, height: 52, backgroundImage: reco.photo_url ? `url('${reco.photo_url}')` : 'none' }}
-                />
-                <div>
-                  <div className="recommend-label">{selected.recommendation_label || 'Suggestion'}</div>
-                  <div style={{ fontWeight: 700, fontSize: 14 }}>{reco.name}</div>
-                  <div style={{ color: 'var(--ink-dim)', fontSize: 12 }}>{formatPrice(reco.price)}</div>
-                </div>
-              </div>
-            );
-          })()}
-
-          <div style={{ color: 'var(--wine)', fontWeight: 700, fontSize: 17, margin: '16px 0' }}>{formatPrice(selected.price)}</div>
-
-          <button className="btn" onClick={() => { addToCart(selected); setSelected(null); }}>
-            + Ajouter à ma commande
-          </button>
-        </div>
-      </div>
-    );
+  function startAdd() {
+    setEditingId(null);
+    setForm(emptyForm);
+    setFile(null);
+    setPreview(null);
+    setFormOpen(true);
   }
 
-  // ---------- Cart overlay ----------
-  if (cartOpen) {
-    return (
-      <div className="wrap">
-        <div className="awning" />
-        <div style={{ padding: '20px' }}>
-          <button
-            onClick={() => setCartOpen(false)}
-            style={{
-              background: 'none', border: 'none', color: 'var(--ink-dim)', fontSize: 12,
-              cursor: 'pointer', marginBottom: 14, textTransform: 'uppercase',
-              letterSpacing: '0.04em', fontFamily: "'Big Shoulders Text', sans-serif",
-            }}
-          >
-            ‹ Retour à la carte
-          </button>
-          <h1 className="title" style={{ fontSize: 24, marginBottom: 16 }}>Ma commande</h1>
-
-          {cartItems.length === 0 && (
-            <p style={{ color: 'var(--ink-dim)' }}>Aucun plat sélectionné pour l'instant.</p>
-          )}
-
-          {cartItems.map(({ dish, qty }) => (
-            <div key={dish.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--line)' }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600, fontSize: 14 }}>{dish.name}</div>
-                <div style={{ color: 'var(--ink-dim)', fontSize: 12.5 }}>{formatPrice(dish.price)}</div>
-              </div>
-              <button onClick={() => decFromCart(dish.id)} className="btn ghost" style={{ padding: '4px 10px', fontSize: 13 }}>−</button>
-              <span style={{ minWidth: 18, textAlign: 'center', fontWeight: 600 }}>{qty}</span>
-              <button onClick={() => addToCart(dish)} className="btn ghost" style={{ padding: '4px 10px', fontSize: 13 }}>+</button>
-            </div>
-          ))}
-
-          {cartItems.length > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 18, fontWeight: 700, fontSize: 16 }}>
-              <span>Total</span>
-              <span style={{ color: 'var(--wine)' }}>{cartTotal.toFixed(2).replace('.', ',')} €</span>
-            </div>
-          )}
-          <p style={{ color: 'var(--ink-dim)', fontSize: 12, marginTop: 16 }}>
-            Montrez cet écran à votre serveur pour passer commande.
-          </p>
-        </div>
-      </div>
-    );
+  function startEdit(dish) {
+    const existingAllergens = (dish.allergens || '').split(',').map((a) => a.trim()).filter(Boolean);
+    const checked = existingAllergens.filter((a) => ALLERGEN_LIST.includes(a));
+    const custom = existingAllergens.filter((a) => !ALLERGEN_LIST.includes(a)).join(', ');
+    setEditingId(dish.id);
+    setForm({
+      name: dish.name || '',
+      price: dish.price || '',
+      category: dish.category || '',
+      newCategory: '',
+      subcategory: dish.subcategory || '',
+      description: dish.description || '',
+      allergensChecked: checked,
+      allergensCustom: custom,
+    });
+    setFile(null);
+    setPreview(dish.photo_url || null);
+    setFormOpen(true);
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  // ---------- Main menu (accordion) ----------
+  function cancelForm() {
+    setFormOpen(false);
+    setEditingId(null);
+    setForm(emptyForm);
+    setFile(null);
+    setPreview(null);
+  }
+
+  async function saveDish() {
+    if (!form.name.trim() || !form.price.trim()) return;
+    setSaving(true);
+
+    let photo_url = editingId ? (dishes.find((d) => d.id === editingId)?.photo_url ?? null) : null;
+    if (file) {
+      let toUpload = file;
+      try {
+        toUpload = await resizeImage(file, 1080, 0.75);
+      } catch (e) {
+        toUpload = file;
+      }
+      const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
+      const { error: uploadError } = await supabase.storage
+        .from('photos')
+        .upload(path, toUpload, { contentType: 'image/jpeg' });
+      if (uploadError) {
+        alert("Erreur lors de l'envoi de la photo : " + uploadError.message);
+        setSaving(false);
+        return;
+      }
+      const { data: publicUrlData } = supabase.storage.from('photos').getPublicUrl(path);
+      photo_url = publicUrlData.publicUrl;
+    }
+
+    const catName = (form.category === '__new__' ? form.newCategory.trim() : form.category.trim()) || 'Plats';
+    const allergensCombined = [...form.allergensChecked, ...form.allergensCustom.split(',').map((a) => a.trim()).filter(Boolean)].join(', ');
+
+    const payload = {
+      name: form.name.trim(),
+      price: form.price.trim(),
+      category: catName,
+      subcategory: form.subcategory.trim() || null,
+      description: form.description.trim() || null,
+      allergens: allergensCombined || null,
+      photo_url,
+    };
+
+    let error;
+    if (editingId) {
+      ({ error } = await supabase.from('dishes').update(payload).eq('id', editingId));
+    } else {
+      ({ error } = await supabase.from('dishes').insert({ ...payload, available: true }));
+    }
+
+    if (error) {
+      alert("Erreur lors de l'enregistrement : " + error.message);
+    } else {
+      const existingCat = categories.find((c) => c.name === catName);
+      if (!existingCat) {
+        const maxPos = categories.length ? Math.max(...categories.map((c) => c.position)) : -1;
+        await supabase.from('categories').insert({ name: catName, position: maxPos + 1 });
+        loadCategories();
+      }
+      cancelForm();
+      loadDishes();
+    }
+    setSaving(false);
+  }
+
+  async function setRecommendedDrink(dishId, recommendedId) {
+    await supabase.from('dishes').update({ recommended_dish_id: recommendedId || null }).eq('id', dishId);
+    loadDishes();
+  }
+
+  async function setRecommendationLabel(dishId, label) {
+    await supabase.from('dishes').update({ recommendation_label: label || 'Suggestion' }).eq('id', dishId);
+    loadDishes();
+  }
+
+  async function moveCategory(index, dir) {
+    const other = index + dir;
+    if (other < 0 || other >= categories.length) return;
+    const a = categories[index];
+    const b = categories[other];
+    await supabase.from('categories').update({ position: b.position }).eq('id', a.id);
+    await supabase.from('categories').update({ position: a.position }).eq('id', b.id);
+    loadCategories();
+  }
+
+  async function renameCategory(cat, newName) {
+    const trimmed = newName.trim();
+    if (!trimmed || trimmed === cat.name) {
+      setRenamingId(null);
+      return;
+    }
+    const target = categories.find((c) => c.name === trimmed && c.id !== cat.id);
+    if (target) {
+      await supabase.from('dishes').update({ category: trimmed }).eq('category', cat.name);
+      await supabase.from('categories').delete().eq('id', cat.id);
+    } else {
+      await supabase.from('categories').update({ name: trimmed }).eq('id', cat.id);
+      await supabase.from('dishes').update({ category: trimmed }).eq('category', cat.name);
+    }
+    setRenamingId(null);
+    loadCategories();
+    loadDishes();
+  }
+
+  async function deleteCategory(cat) {
+    const count = grouped[cat.name]?.length || 0;
+    if (count > 0) {
+      alert(`« ${cat.name} » contient encore ${count} plat${count > 1 ? 's' : ''}. Renomme-la vers une autre catégorie pour fusionner, ou déplace/supprime d'abord ses plats.`);
+      return;
+    }
+    await supabase.from('categories').delete().eq('id', cat.id);
+    loadCategories();
+  }
+
+  async function toggleAvailable(dish) {
+    await supabase.from('dishes').update({ available: !dish.available }).eq('id', dish.id);
+    loadDishes();
+  }
+
+  async function deleteDish(dish) {
+    await supabase.from('dishes').delete().eq('id', dish.id);
+    if (editingId === dish.id) cancelForm();
+    loadDishes();
+  }
+
   return (
     <div className="wrap">
       <div className="awning" />
       <div className="header">
-        <div className="eyebrow">Le Petit Basilic</div>
-        <h1 className="title">La carte</h1>
-        <p className="sub">Un coup d'œil avant de commander : touchez un plat pour voir la photo en grand — ou ajoutez-le directement à votre commande.</p>
+        <div className="eyebrow">Espace restaurateur</div>
+        <h1 className="title">Ma carte</h1>
+        <p className="sub">
+          Ajoutez, mettez à jour ou retirez des plats. Les changements sont visibles côté client immédiatement.{' '}
+          <a href="/menu" style={{ color: 'var(--wine)', fontWeight: 600 }}>Voir la carte client →</a>
+        </p>
       </div>
 
-      <div style={{ padding: '0 20px 90px' }}>
-        {loading && <p style={{ color: 'var(--ink-dim)' }}>Chargement de la carte…</p>}
-        {!loading && dishes.length === 0 && (
-          <p style={{ color: 'var(--ink-dim)' }}>La carte n'a pas encore été mise à jour.</p>
-        )}
+      <div style={{ padding: '0 20px' }}>
+        <div className="card">
+          <h3 style={{ fontFamily: 'Fraunces, serif', margin: '0 0 14px' }}>
+            {loading ? 'Chargement…' : `${dishes.length} plat${dishes.length > 1 ? 's' : ''}`}
+          </h3>
 
-        {Object.entries(grouped)
-          .sort((a, b) => categoryRank(a[0]) - categoryRank(b[0]))
-          .map(([catName, catData]) => {
-          const isOpen = !!openCat[catName];
-          const hasSubs = Object.keys(catData.subs).length > 0;
-          return (
-            <div key={catName} style={{ marginBottom: 10 }}>
-              <button
-                onClick={() => setOpenCat((o) => ({ ...o, [catName]: !isOpen }))}
-                className="accordion-header"
-              >
-                <span>{catName}</span>
-                <span className={`chevron ${isOpen ? 'open' : ''}`}>⌄</span>
-              </button>
-
-              {isOpen && (
-                <div className="accordion-body">
-                  {catData.direct.map((d) => (
-                    <DishRow key={d.id} dish={d} dishes={dishes} settings={settings} onView={() => setSelected(d)} onAdd={() => addToCart(d)} />
-                  ))}
-
-                  {hasSubs && Object.entries(catData.subs).map(([subName, subDishes]) => {
-                    const subKey = catName + '::' + subName;
-                    const subIsOpen = !!openSub[subKey];
-                    return (
-                      <div key={subKey} style={{ marginTop: 8 }}>
+          {Object.entries(grouped)
+            .sort((a, b) => categoryRank(a[0]) - categoryRank(b[0]))
+            .map(([catName, catDishes]) => {
+              const isOpen = openCat[catName] !== false;
+              return (
+                <div key={catName} style={{ marginBottom: 8 }}>
+                  <button
+                    onClick={() => setOpenCat((o) => ({ ...o, [catName]: !isOpen }))}
+                    className="accordion-subheader"
+                    style={{ width: '100%' }}
+                  >
+                    <span>{catName} <span style={{ color: 'var(--ink-dim)', fontWeight: 400 }}>({catDishes.length})</span></span>
+                    <span className={`chevron ${isOpen ? 'open' : ''}`}>⌄</span>
+                  </button>
+                  {isOpen && catDishes.map((d) => (
+                    <div key={d.id}>
+                      <div
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 12,
+                          padding: '10px 4px', borderBottom: settings.show_recommendations ? 'none' : '1px solid var(--line)',
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: 50, height: 50, borderRadius: 10, flexShrink: 0,
+                            backgroundColor: '#EFE6D4', backgroundSize: 'cover', backgroundPosition: 'center',
+                            backgroundImage: d.photo_url ? `url('${d.photo_url}')` : 'none',
+                            border: '1px solid var(--line)',
+                          }}
+                        />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: 600, fontSize: 14 }}>{d.name}</div>
+                          <div style={{ color: 'var(--ink-dim)', fontSize: 12.5 }}>{formatPrice(d.price)}</div>
+                          {d.subcategory && (
+                            <div style={{ color: 'var(--brass)', fontSize: 10.5, marginTop: 2 }}>{d.subcategory}</div>
+                          )}
+                        </div>
                         <button
-                          onClick={() => setOpenSub((o) => ({ ...o, [subKey]: !subIsOpen }))}
-                          className="accordion-subheader"
+                          onClick={() => startEdit(d)}
+                          className="btn ghost"
+                          style={{ fontSize: 11, padding: '6px 10px', borderRadius: 999 }}
                         >
-                          <span>{subName}</span>
-                          <span className={`chevron ${subIsOpen ? 'open' : ''}`}>⌄</span>
+                          Modifier
                         </button>
-                        {subIsOpen && (
-                          <div className="accordion-subbody">
-                            {subDishes.map((d) => (
-                              <DishRow key={d.id} dish={d} dishes={dishes} settings={settings} onView={() => setSelected(d)} onAdd={() => addToCart(d)} />
-                            ))}
-                          </div>
-                        )}
+                        <button
+                          onClick={() => toggleAvailable(d)}
+                          className="btn ghost"
+                          style={{
+                            fontSize: 11, padding: '6px 10px', borderRadius: 999,
+                            color: d.available ? 'var(--herb)' : 'var(--brick)',
+                            borderColor: d.available ? 'rgba(76,107,65,0.35)' : 'rgba(184,84,58,0.35)',
+                          }}
+                        >
+                          {d.available ? 'Dispo' : 'Épuisé'}
+                        </button>
+                        <button
+                          onClick={() => deleteDish(d)}
+                          style={{ background: 'none', border: 'none', color: 'var(--ink-dim)', cursor: 'pointer', fontSize: 16 }}
+                        >
+                          ✕
+                        </button>
                       </div>
+                      {settings.show_recommendations && (
+                        <div style={{ padding: '0 4px 10px 66px', borderBottom: '1px solid var(--line)' }}>
+                          <label style={{ fontSize: 10.5, color: 'var(--ink-dim)', display: 'block', marginBottom: 3 }}>
+                            Recommander avec « {d.name} »
+                          </label>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <select
+                              value={d.recommended_dish_id || ''}
+                              onChange={(e) => setRecommendedDrink(d.id, e.target.value)}
+                              style={{
+                                flex: 1, background: 'var(--paper)', border: '1px solid var(--line)',
+                                color: 'var(--ink)', padding: '7px 8px', borderRadius: 8, fontSize: 12.5,
+                              }}
+                            >
+                              <option value="">Aucune recommandation</option>
+                              {dishes.filter((other) => other.id !== d.id).map((other) => (
+                                <option key={other.id} value={other.id}>{other.name}</option>
+                              ))}
+                            </select>
+                            {d.recommended_dish_id && (
+                              <select
+                                value={d.recommendation_label || 'Suggestion'}
+                                onChange={(e) => setRecommendationLabel(d.id, e.target.value)}
+                                style={{
+                                  background: 'var(--paper)', border: '1px solid var(--line)',
+                                  color: 'var(--ink)', padding: '7px 8px', borderRadius: 8, fontSize: 12.5,
+                                }}
+                              >
+                                <option value="Suggestion">Suggestion</option>
+                                <option value="Boisson conseillée">Boisson conseillée</option>
+                                <option value="Plat conseillé">Plat conseillé</option>
+                                <option value="Dessert conseillé">Dessert conseillé</option>
+                                <option value="Accord parfait">Accord parfait</option>
+                              </select>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
+
+          {!formOpen && (
+            <button className="btn ghost" style={{ width: '100%', marginTop: 12 }} onClick={startAdd}>
+              + Ajouter un plat
+            </button>
+          )}
+
+          {formOpen && (
+            <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px dashed var(--line)' }}>
+              <h4 style={{ fontFamily: 'Fraunces, serif', fontSize: 15, margin: '0 0 10px' }}>
+                {editingId ? 'Modifier le plat' : 'Nouveau plat'}
+              </h4>
+
+              <div className="field">
+                <label>Photo du plat</label>
+                <label
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
+                    border: '1px dashed var(--line)', borderRadius: 10, padding: 10, background: 'var(--paper)',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 40, height: 40, borderRadius: 8, flexShrink: 0,
+                      backgroundColor: '#EFE6D4', backgroundSize: 'cover', backgroundPosition: 'center',
+                      backgroundImage: preview ? `url('${preview}')` : 'none',
+                    }}
+                  />
+                  <span style={{ fontSize: 12.5, color: 'var(--ink-dim)' }}>
+                    {file ? file.name : preview ? 'Remplacer la photo…' : 'Choisir une photo…'}
+                  </span>
+                  <input type="file" accept="image/*" onChange={onFileChange} style={{ display: 'none' }} />
+                </label>
+              </div>
+
+              <div className="field">
+                <label>Nom du plat</label>
+                <input value={form.name} onChange={(e) => updateForm({ name: e.target.value })} placeholder="Ex. Burrata, tomates confites" />
+              </div>
+
+              <div className="field">
+                <label>Description (optionnel)</label>
+                <input value={form.description} onChange={(e) => updateForm({ description: e.target.value })} placeholder="Ex. Sauce maison, légumes de saison…" />
+              </div>
+
+              <div className="field">
+                <label>Catégorie</label>
+                <select
+                  value={form.category}
+                  onChange={(e) => updateForm({ category: e.target.value })}
+                  style={{
+                    width: '100%', background: 'var(--paper)', border: '1px solid var(--line)', color: 'var(--ink)',
+                    padding: '9px 10px', borderRadius: 8, fontSize: 13.5,
+                  }}
+                >
+                  <option value="">Choisir une catégorie…</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.name}>{c.name}</option>
+                  ))}
+                  <option value="__new__">+ Nouvelle catégorie…</option>
+                </select>
+                {form.category === '__new__' && (
+                  <input
+                    style={{ marginTop: 8 }}
+                    value={form.newCategory}
+                    onChange={(e) => updateForm({ newCategory: e.target.value })}
+                    placeholder="Nom de la nouvelle catégorie"
+                  />
+                )}
+              </div>
+
+              <div className="field">
+                <label>Sous-catégorie (optionnel)</label>
+                <input value={form.subcategory} onChange={(e) => updateForm({ subcategory: e.target.value })} placeholder="Ex. Tartes flambées" />
+              </div>
+
+              <div className="field">
+                <label>Allergènes (optionnel)</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                  {ALLERGEN_LIST.map((a) => {
+                    const checked = form.allergensChecked.includes(a);
+                    return (
+                      <button
+                        key={a}
+                        type="button"
+                        onClick={() => toggleAllergen(a)}
+                        className={`toggle-btn ${checked ? 'on' : ''}`}
+                        style={{ marginLeft: 0 }}
+                      >
+                        {a}
+                      </button>
                     );
                   })}
                 </div>
+                <input
+                  value={form.allergensCustom}
+                  onChange={(e) => updateForm({ allergensCustom: e.target.value })}
+                  placeholder="Autre allergène (séparé par une virgule)"
+                />
+              </div>
+
+              <div className="field">
+                <label>Prix (en €)</label>
+                <input value={form.price} onChange={(e) => updateForm({ price: e.target.value })} placeholder="Ex. 14 ou 14,50" />
+              </div>
+
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn" style={{ flex: 1 }} disabled={saving} onClick={saveDish}>
+                  {saving ? 'Enregistrement…' : editingId ? 'Enregistrer les modifications' : 'Ajouter à la carte'}
+                </button>
+                <button className="btn ghost" onClick={cancelForm}>Annuler</button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="card" style={{ marginTop: 16 }}>
+          <h3 style={{ fontFamily: 'Fraunces, serif', margin: '0 0 14px' }}>Ordre des catégories</h3>
+          <p style={{ color: 'var(--ink-dim)', fontSize: 12.5, marginTop: -8, marginBottom: 14 }}>
+            L'ordre choisi ici est celui qui s'affiche côté client. Renomme une catégorie vers le nom d'une autre pour les fusionner (utile si tu as un doublon comme « entrées » et « Les entrées »).
+          </p>
+          {categories.length === 0 && (
+            <p style={{ color: 'var(--ink-dim)', fontSize: 13 }}>
+              Les catégories apparaîtront ici dès que tu auras ajouté un plat.
+            </p>
+          )}
+          {categories.map((c, i) => (
+            <div
+              key={c.id}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '9px 4px', borderBottom: '1px solid var(--line)',
+              }}
+            >
+              {renamingId === c.id ? (
+                <>
+                  <input
+                    autoFocus
+                    value={renameValue}
+                    onChange={(e) => setRenameValue(e.target.value)}
+                    style={{ flex: 1 }}
+                  />
+                  <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => renameCategory(c, renameValue)}>
+                    OK
+                  </button>
+                  <button
+                    className="btn ghost"
+                    style={{ padding: '4px 10px', fontSize: 12 }}
+                    onClick={() => setRenamingId(null)}
+                  >
+                    Annuler
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div style={{ flex: 1, fontWeight: 600, fontSize: 14 }}>
+                    {c.name} <span style={{ color: 'var(--ink-dim)', fontWeight: 400, fontSize: 12 }}>({grouped[c.name]?.length || 0})</span>
+                  </div>
+                  <button
+                    onClick={() => { setRenamingId(c.id); setRenameValue(c.name); }}
+                    className="btn ghost"
+                    style={{ padding: '4px 10px', fontSize: 12 }}
+                  >
+                    Renommer
+                  </button>
+                  <button
+                    onClick={() => moveCategory(i, -1)}
+                    disabled={i === 0}
+                    className="btn ghost"
+                    style={{ padding: '4px 12px', fontSize: 13 }}
+                  >
+                    ▲
+                  </button>
+                  <button
+                    onClick={() => moveCategory(i, 1)}
+                    disabled={i === categories.length - 1}
+                    className="btn ghost"
+                    style={{ padding: '4px 12px', fontSize: 13 }}
+                  >
+                    ▼
+                  </button>
+                  <button
+                    onClick={() => deleteCategory(c)}
+                    style={{ background: 'none', border: 'none', color: 'var(--ink-dim)', cursor: 'pointer', fontSize: 16 }}
+                    title="Supprimer (catégorie vide uniquement)"
+                  >
+                    ✕
+                  </button>
+                </>
               )}
             </div>
-          );
-        })}
-      </div>
-
-      {cartCount > 0 && (
-        <button className="cart-bar" onClick={() => setCartOpen(true)}>
-          <span>{cartCount} plat{cartCount > 1 ? 's' : ''} sélectionné{cartCount > 1 ? 's' : ''}</span>
-          <span>{cartTotal.toFixed(2).replace('.', ',')} €</span>
-        </button>
-      )}
-    </div>
-  );
-}
-
-function DishRow({ dish, dishes, settings, onView, onAdd }) {
-  const reco = settings?.show_recommendations && dish.recommended_dish_id
-    ? dishes.find((d) => d.id === dish.recommended_dish_id)
-    : null;
-  return (
-    <div className={`dish-row ${!dish.available ? 'unavailable' : ''}`}>
-      <div
-        onClick={dish.available ? onView : undefined}
-        className="dish-thumb"
-        style={{
-          backgroundImage: dish.photo_url ? `url('${dish.photo_url}')` : 'none',
-          cursor: dish.available ? 'pointer' : 'default',
-        }}
-      />
-      <div onClick={dish.available ? onView : undefined} style={{ flex: 1, cursor: dish.available ? 'pointer' : 'default' }}>
-        <div style={{ fontWeight: 600, fontSize: 14.5 }}>
-          {dish.name}
-          {!dish.available && <span className="badge-epuise">Épuisé</span>}
+          ))}
         </div>
-        {dish.description && (
-          <div style={{ color: 'var(--ink-dim)', fontSize: 11.5, marginTop: 1 }}>{dish.description}</div>
-        )}
-        {reco && (
-          <div style={{ color: 'var(--brass)', fontSize: 11, marginTop: 2, fontWeight: 600 }}>
-            {dish.recommendation_label || 'Suggestion'} : {reco.name}
+
+        <div className="card" style={{ marginTop: 16 }}>
+          <h3 style={{ fontFamily: 'Fraunces, serif', margin: '0 0 4px' }}>Réglages</h3>
+          <p style={{ color: 'var(--ink-dim)', fontSize: 12.5, marginBottom: 10 }}>
+            Active ou désactive ces fonctionnalités selon tes besoins.
+          </p>
+          <div className="toggle-row">
+            <div>
+              <div className="toggle-label">Recommandations de boissons</div>
+              <div className="toggle-desc">Suggère une boisson conseillée quand le client regarde un plat.</div>
+            </div>
+            <button
+              className={`toggle-btn ${settings.show_recommendations ? 'on' : ''}`}
+              onClick={() => toggleSetting('show_recommendations')}
+            >
+              {settings.show_recommendations ? 'Activé' : 'Désactivé'}
+            </button>
           </div>
-        )}
-        <div style={{ color: 'var(--wine)', fontSize: 13, fontWeight: 600, marginTop: 2 }}>{formatPrice(dish.price)}</div>
+          <div className="toggle-row">
+            <div>
+              <div className="toggle-label">Statistiques</div>
+              <div className="toggle-desc">Suivi des plats commandés par jour et par service.</div>
+            </div>
+            <button
+              className={`toggle-btn ${settings.track_stats ? 'on' : ''}`}
+              onClick={() => toggleSetting('track_stats')}
+            >
+              {settings.track_stats ? 'Activé' : 'Désactivé'}
+            </button>
+          </div>
+        </div>
       </div>
-      {dish.available && (
-        <button onClick={onAdd} className="plus-btn" aria-label="Ajouter à la commande">+</button>
-      )}
     </div>
   );
+
+  async function toggleSetting(key) {
+    const next = { ...settings, [key]: !settings[key] };
+    setSettings(next);
+    await supabase.from('settings').update({ [key]: next[key] }).eq('id', 1);
+  }
 }
