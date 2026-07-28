@@ -10,7 +10,7 @@ const ALLERGEN_LIST = [
   'Fruits à coque', 'Céleri', 'Moutarde', 'Sésame', 'Sulfites', 'Lupin', 'Mollusques',
 ];
 
-const emptyForm = {
+const emptyForm = {   name: '', price: '', categoryId: '', newCategory: '',   description: '', allergensChecked: [], allergensCustom: '',   nameEn: '', nameDe: '', descriptionEn: '', descriptionDe: '', };   name: '', price: '', categoryId: '', newCategory: '',   description: '', allergensChecked: [], allergensCustom: '',   nameEn: '', nameDe: '', descriptionEn: '', descriptionDe: '', };
   name: '', price: '', categoryId: '', newCategory: '',
   description: '', allergensChecked: [], allergensCustom: '',
 };
@@ -151,7 +151,7 @@ export default function AdminPage() {
     const checked = existingAllergens.filter((a) => ALLERGEN_LIST.includes(a));
     const custom = existingAllergens.filter((a) => !ALLERGEN_LIST.includes(a)).join(', ');
     setEditingId(dish.id);
-    setForm({
+   setForm({
       name: dish.name || '',
       price: dish.price || '',
       categoryId: dish.category_id || '',
@@ -159,6 +159,10 @@ export default function AdminPage() {
       description: dish.description || '',
       allergensChecked: checked,
       allergensCustom: custom,
+      nameEn: dish.name_en || '',
+      nameDe: dish.name_de || '',
+      descriptionEn: dish.description_en || '',
+      descriptionDe: dish.description_de || '',
     });
     setFile(null);
     setPreview(dish.photo_url || null);
@@ -219,13 +223,17 @@ export default function AdminPage() {
 
     const allergensCombined = [...form.allergensChecked, ...form.allergensCustom.split(',').map((a) => a.trim()).filter(Boolean)].join(', ');
 
-    const payload = {
+   const payload = {
       name: form.name.trim(),
       price: form.price.trim(),
       category_id: categoryId || null,
       description: form.description.trim() || null,
       allergens: allergensCombined || null,
       photo_url,
+      name_en: form.nameEn.trim() || null,
+      name_de: form.nameDe.trim() || null,
+      description_en: form.descriptionEn.trim() || null,
+      description_de: form.descriptionDe.trim() || null,
     };
 
     let error;
@@ -546,6 +554,18 @@ export default function AdminPage() {
               </div>
 
               <div className="field">
+                    <div className="field" style={{ borderTop: '1px dashed var(--line)', paddingTop: 14, marginTop: 4 }}>
+                <label style={{ marginBottom: 8 }}>Traductions (optionnel — pour les clients anglais/allemands)</label>
+                <p style={{ fontSize: 11, color: 'var(--ink-dim)', marginTop: -4, marginBottom: 8 }}>
+                  Laisse vide pour garder le français par défaut dans cette langue.
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <input value={form.nameEn} onChange={(e) => updateForm({ nameEn: e.target.value })} placeholder="Nom (anglais)" />
+                  <input value={form.nameDe} onChange={(e) => updateForm({ nameDe: e.target.value })} placeholder="Name (allemand)" />
+                  <input value={form.descriptionEn} onChange={(e) => updateForm({ descriptionEn: e.target.value })} placeholder="Description (anglais)" />
+                  <input value={form.descriptionDe} onChange={(e) => updateForm({ descriptionDe: e.target.value })} placeholder="Beschreibung (allemand)" />
+                </div>
+              </div>
                 <label>Prix (en €)</label>
                 <input value={form.price} onChange={(e) => updateForm({ price: e.target.value })} placeholder="Ex. 14 ou 14,50" />
               </div>
