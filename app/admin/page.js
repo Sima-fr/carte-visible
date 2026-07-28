@@ -432,11 +432,50 @@ export default function AdminPage() {
     }
   }
 
+  if (authLoading) {
+    return (
+      <div className="wrap">
+        <div className="awning" />
+        <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink-dim)' }}>Chargement…</div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return (
+      <div className="wrap">
+        <div className="awning" />
+        <div style={{ padding: '40px 20px', maxWidth: 360, margin: '0 auto' }}>
+          <div className="eyebrow">Espace restaurateur</div>
+          <h1 className="title" style={{ fontSize: 26 }}>Connexion</h1>
+          <p className="sub" style={{ marginBottom: 20 }}>Connecte-toi avec l'email et le mot de passe de ton restaurant.</p>
+          <div className="field">
+            <label>Email</label>
+            <input value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} placeholder="ton@email.com" />
+          </div>
+          <div className="field">
+            <label>Mot de passe</label>
+            <input type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} placeholder="••••••••" />
+          </div>
+          {loginError && <p style={{ color: 'var(--brick)', fontSize: 12.5, marginBottom: 10 }}>{loginError}</p>}
+          <button className="btn" style={{ width: '100%' }} disabled={loggingIn} onClick={handleLogin}>
+            {loggingIn ? 'Connexion…' : 'Se connecter'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="wrap" style={{ '--wine': settings.accent_color || '#7C2D2D', '--paper': settings.background_color || '#FAF3E6' }}>
       <div className="awning" />
       <div className="header">
-        <div className="eyebrow">Espace restaurateur</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div className="eyebrow">Espace restaurateur{restaurant ? ` — ${restaurant.name}` : ''}</div>
+          <button onClick={handleLogout} className="btn ghost" style={{ padding: '6px 12px', fontSize: 11 }}>
+            Déconnexion
+          </button>
+        </div>
         <h1 className="title">
           {activeTab === 'dishes' && 'Ma carte'}
           {activeTab === 'categories' && 'Mes catégories'}
