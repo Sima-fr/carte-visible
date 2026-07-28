@@ -608,7 +608,18 @@ export default function AdminPage() {
           <div className="toggle-row">
             <div>
               <div className="toggle-label">Statistiques</div>
-              <div className="toggle-desc">Suivi des plats commandés par jour et par service.</div>
+              <div className="toggle-desc">Suivi des plats commandés par jour et par service.</div><div className="toggle-row" style={{ borderBottom: 'none' }}>
+            <div>
+              <div className="toggle-label">Couleur de la carte</div>
+              <div className="toggle-desc">Change la couleur d'accent vue par tes clients sur /menu.</div>
+            </div>
+            <input
+              type="color"
+              value={settings.accent_color || '#7C2D2D'}
+              onChange={(e) => setAccentColor(e.target.value)}
+              style={{ width: 44, height: 32, border: '1px solid var(--line)', borderRadius: 8, padding: 2, background: 'none', cursor: 'pointer', flexShrink: 0, marginLeft: 12 }}
+            />
+          </div>
             </div>
             <button
               className={`toggle-btn ${settings.track_stats ? 'on' : ''}`}
