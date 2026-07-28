@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { resizeImage } from '../../lib/resizeImage';
 import { formatPrice } from '../../lib/format';
+import { translateText } from '../../lib/translate';
 
 const ALLERGEN_LIST = [
   'Gluten', 'Crustacés', 'Œufs', 'Poissons', 'Arachides', 'Soja', 'Lait',
@@ -63,6 +64,7 @@ export default function AdminPage() {
   const [renamingId, setRenamingId] = useState(null);
   const [renameValue, setRenameValue] = useState('');
   const [addingChildFor, setAddingChildFor] = useState(null);
+  const [autoTranslating, setAutoTranslating] = useState(false);
   const [newChildName, setNewChildName] = useState('');
 
   async function loadDishes() {
@@ -343,6 +345,34 @@ export default function AdminPage() {
   }async function setCategoryTranslation(catId, field, value) {
     await supabase.from('categories').update({ [field]: value || null }).eq('id', catId);
     loadCategories();
+  }async function autoTranslateAll() {
+    setAutoTranslating(true);
+    try {
+      for (const cat of categories) {
+        const patch = {};
+        if (!cat.name_en) patch.name_en = await translateText(cat.name, 'en');
+        if (!cat.name_de) patch.name_de = await translateText(cat.name, 'de');
+        if (Object.keys(patch).length) {
+          await supabase.from('categories').update(patch).eq('id', cat.id);
+        }
+      }
+      for (const d of dishes) {
+        const patch = {};
+        if (!d.name_en) patch.name_en = await translateText(d.name, 'en');
+        if (!d.name_de) patch.name_de = await translateText(d.name, 'de');
+        if (d.description) {
+          if (!d.description_en) patch.description_en = await translateText(d.description, 'en');
+          if (!d.description_de) patch.description_de = await translateText(d.description, 'de');
+        }
+        if (Object.keys(patch).length) {
+          await supabase.from('dishes').update(patch).eq('id', d.id);
+        }
+      }
+      await loadCategories();
+      await loadDishes();
+    } finally {
+      setAutoTranslating(false);
+    }
   }
 
   return (
@@ -668,11 +698,23 @@ export default function AdminPage() {
             <div>
               <div className="toggle-label">Couleur de la carte</div><div className="toggle-row" style={{ borderBottom: 'none' }}>
             <div>
-              <div className="toggle-label">Couleur de fond</div><div className="toggle-row" style={{ borderBottom: 'none' }}>
-            <div>
+              <div className="toggle-label">Couleur de fond</div><div className="toggle-row">
               <div className="toggle-label">Traduire aussi les titres</div>
               <div className="toggle-desc">Si activé, les noms des plats et des catégories se traduisent aussi (sinon seulement descriptions/allergènes/textes fixes).</div>
+            </div><div className="toggle-row" style={{ borderBottom: 'none' }}>
+            <div>
+              <div className="toggle-label">Traduction automatique</div>
+              <div className="toggle-desc">Remplit automatiquement les traductions manquantes (plats et catégories) via un service gratuit. Reclique après avoir ajouté de nouveaux plats.</div>
             </div>
+            <button
+              className="btn ghost"
+              disabled={autoTranslating}
+              onClick={autoTranslateAll}
+              style={{ marginLeft: 12, whiteSpace: 'nowrap' }}
+            >
+              {autoTranslating ? 'Traduction…' : 'Traduire automatiquement'}
+            </button>
+          </div>
             <button
               className={`toggle-btn ${settings.translate_titles ? 'on' : ''}`}
               onClick={() => toggleSetting('translate_titles')}
