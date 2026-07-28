@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-// Dictionnaire de traduction intégré
+
+// Dictionnaire de traduction
 const translations = {
   fr: {
     menuTitle: "Coup d'Œil",
@@ -24,7 +25,7 @@ const translations = {
   }
 };
 
-// Sélecteur de langue intégré
+// Sélecteur de langue
 function LanguageSelector({ currentLang, onLanguageChange }) {
   const languages = [
     { code: 'fr', label: 'FR', flag: '🇫🇷' },
