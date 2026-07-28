@@ -375,7 +375,7 @@ export default function AdminPage() {
     if (!trimmed) return;
     const siblings = byParent[parentId || 'root'] || [];
     const maxPos = siblings.length ? Math.max(...siblings.map((c) => c.position)) : -1;
-    await supabase.from('categories').insert({ name: trimmed, position: maxPos + 1, parent_id: parentId || null });
+    await supabase.from('categories').insert({ name: trimmed, position: maxPos + 1, parent_id: parentId || null, restaurant_id: restaurant.id });
     setAddingChildFor(null);
     setNewChildName('');
     loadCategories();
