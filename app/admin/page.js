@@ -50,7 +50,7 @@ function categoryPath(categories, id) {
 export default function AdminPage() {
   const [dishes, setDishes] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [settings, setSettings] = useState({ show_recommendations: false, track_stats: false, accent_color: '#7C2D2D' });
+  const [settings, setSettings] = useState({ show_recommendations: false, track_stats: false, accent_color: '#7C2D2D', background_color: '#FAF3E6', translate_titles: false });
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -340,6 +340,9 @@ export default function AdminPage() {
   }async function setBackgroundColor(color) {
     setSettings((s) => ({ ...s, background_color: color }));
     await supabase.from('settings').update({ background_color: color }).eq('id', 1);
+  }async function setCategoryTranslation(catId, field, value) {
+    await supabase.from('categories').update({ [field]: value || null }).eq('id', catId);
+    loadCategories();
   }
 
   return (
@@ -591,7 +594,8 @@ export default function AdminPage() {
             parentId={null}
             byParent={byParent}
             dishCountByCat={dishCountByCat}
-            depth={0}
+            depth={0}translateTitles={settings.translate_titles}
+            onSaveTranslation={setCategoryTranslation}
             renamingId={renamingId}
             renameValue={renameValue}
             setRenamingId={setRenamingId}
@@ -664,7 +668,18 @@ export default function AdminPage() {
             <div>
               <div className="toggle-label">Couleur de la carte</div><div className="toggle-row" style={{ borderBottom: 'none' }}>
             <div>
-              <div className="toggle-label">Couleur de fond</div>
+              <div className="toggle-label">Couleur de fond</div><div className="toggle-row" style={{ borderBottom: 'none' }}>
+            <div>
+              <div className="toggle-label">Traduire aussi les titres</div>
+              <div className="toggle-desc">Si activé, les noms des plats et des catégories se traduisent aussi (sinon seulement descriptions/allergènes/textes fixes).</div>
+            </div>
+            <button
+              className={`toggle-btn ${settings.translate_titles ? 'on' : ''}`}
+              onClick={() => toggleSetting('translate_titles')}
+            >
+              {settings.translate_titles ? 'Activé' : 'Désactivé'}
+            </button>
+          </div>
               <div className="toggle-desc">Change la couleur d'arrière-plan de la carte.</div>
             </div>
             <input
@@ -695,6 +710,7 @@ function CategoryTree(props) {
     renamingId, renameValue, setRenamingId, setRenameValue,
     onRename, onMove, onDelete,
     addingChildFor, setAddingChildFor, newChildName, setNewChildName, onAddChild,
+  translateTitles, onSaveTranslation,
   } = props;
   const key = parentId || 'root';
   const nodes = byParent[key] || [];
@@ -751,6 +767,23 @@ function CategoryTree(props) {
               </>
             )}
           </div>
+
+{translateTitles && renamingId !== node.id && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 4, marginBottom: 8, marginLeft: 18 }}>
+              <input
+                defaultValue={node.name_en || ''}
+                onBlur={(e) => onSaveTranslation(node.id, 'name_en', e.target.value)}
+                placeholder={`${node.name} (anglais)`}
+                style={{ fontSize: 12.5 }}
+              />
+              <input
+                defaultValue={node.name_de || ''}
+                onBlur={(e) => onSaveTranslation(node.id, 'name_de', e.target.value)}
+                placeholder={`${node.name} (allemand)`}
+                style={{ fontSize: 12.5 }}
+              />
+            </div>
+          )}
 
           {addingChildFor === node.id && (
             <div style={{ display: 'flex', gap: 6, marginTop: 8, marginBottom: 8, marginLeft: 18 }}>
