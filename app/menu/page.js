@@ -19,7 +19,7 @@ function buildTree(categories) {
 export default function MenuPage() {
   const [dishes, setDishes] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [settings, setSettings] = useState({ show_recommendations: false, accent_color: '#7C2D2D' });
+  const [settings, setSettings] = useState({ show_recommendations: false, accent_color: '#7C2D2D', background_color: '#FAF3E6' });
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [openNode, setOpenNode] = useState({});
@@ -81,7 +81,7 @@ export default function MenuPage() {
   // ---------- Photo detail overlay ----------
   if (selected) {
     return (
-      <div className="wrap" style={{ '--wine': settings.accent_color || '#7C2D2D' }}>
+      <div className="wrap" style={{ '--wine': settings.accent_color || '#7C2D2D', '--paper': settings.background_color || '#FAF3E6' }}>
         <div className="awning" />
         <div style={{ padding: '20px' }}>
           <button
