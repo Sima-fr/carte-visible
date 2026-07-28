@@ -1,307 +1,150 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import Image from 'next/image';
-import { supabase } from '../../lib/supabaseClient';
-import { formatPrice } from '../../lib/format';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import { translations } from '@/lib/translations';
 
-export default function MenuPage() {
-  const [dishes, setDishes] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [settings, setSettings] = useState({ show_recommendations: false, accent_color: '#7C2D2D' });
-  const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState(null);
-  const [openCat, setOpenCat] = useState({});
-  const [openSub, setOpenSub] = useState({});
-  const [cart, setCart] = useState({});
-  const [cartOpen, setCartOpen] = useState(false);
+// Composant interne pour la sélection de la langue
+function LanguageSelector({ currentLang, onLanguageChange }) {
+  const languages = [
+    { code: 'fr', label: 'FR', flag: '🇫🇷' },
+    { code: 'en', label: 'EN', flag: '🇬🇧' },
+    { code: 'de', label: 'DE', flag: '🇩🇪' },
+  ];
 
-  useEffect(() => {
-    async function load() {
-      const { data, error } = await supabase
-        .from('dishes')
-        .select('*')
-        .order('created_at', { ascending: false });
-      if (!error) setDishes(data);
-      setLoading(false);
-    }
-    async function loadCategories() {
-      const { data } = await supabase.from('categories').select('*').order('position', { ascending: true });
-      if (data) setCategories(data);
-    }
-    async function loadSettings() {
-      const { data } = await supabase.from('settings').select('*').eq('id', 1).single();
-      if (data) setSettings(data);
-    }
-    load();
-    loadCategories();
-    loadSettings();
-  }, []);
-
-  function categoryRank(name) {
-    const idx = categories.findIndex((c) => c.name === name);
-    return idx === -1 ? 999 : idx;
-  }
-
-  const grouped = useMemo(() => {
-    const tree = {};
-    for (const d of dishes) {
-      const cat = d.category || 'Plats';
-      const sub = d.subcategory || null;
-      if (!tree[cat]) tree[cat] = { direct: [], subs: {} };
-      if (sub) {
-        if (!tree[cat].subs[sub]) tree[cat].subs[sub] = [];
-        tree[cat].subs[sub].push(d);
-      } else {
-        tree[cat].direct.push(d);
-      }
-    }
-    return tree;
-  }, [dishes]);
-
-  function addToCart(dish) {
-    setCart((c) => ({ ...c, [dish.id]: (c[dish.id] || 0) + 1 }));
-  }
-  function decFromCart(dishId) {
-    setCart((c) => {
-      const n = (c[dishId] || 0) - 1;
-      const next = { ...c };
-      if (n <= 0) delete next[dishId];
-      else next[dishId] = n;
-      return next;
-    });
-  }
-
-  const cartItems = Object.entries(cart)
-    .map(([id, qty]) => ({ dish: dishes.find((d) => d.id === id), qty }))
-    .filter((i) => i.dish);
-  const cartCount = cartItems.reduce((sum, i) => sum + i.qty, 0);
-  const cartTotal = cartItems.reduce((sum, i) => sum + i.qty * (i.dish.price ? parseFloat(String(i.dish.price).replace(',', '.').match(/[\d.]+/)?.[0] || 0) : 0), 0);
-
-  // ---------- Photo detail overlay ----------
-  if (selected) {
-    return (
-      <div className="wrap" style={{ '--wine': settings.accent_color || '#7C2D2D' }}>
-        <div className="awning" />
-        <div style={{ padding: '20px' }}>
-          <button
-            onClick={() => setSelected(null)}
-            style={{
-              background: 'none', border: 'none', color: 'var(--ink-dim)', fontSize: 12,
-              cursor: 'pointer', marginBottom: 14, textTransform: 'uppercase',
-              letterSpacing: '0.04em', fontFamily: "'Big Shoulders Text', sans-serif",
-            }}
-          >
-            ‹ Retour à la carte
-          </button>
-          <div style={{ position: 'relative', width: '100%', height: 320, borderRadius: 14, overflow: 'hidden', marginBottom: 14, background: '#EFE6D4' }}>
-            {selected.photo_url ? (
-              <Image
-                src={selected.photo_url}
-                alt={selected.name}
-                fill
-                sizes="(max-width: 600px) 100vw, 600px"
-                style={{ objectFit: 'cover' }}
-                priority
-              />
-            ) : (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--ink-dim)', fontSize: 13 }}>
-                Pas encore de photo
-              </div>
-            )}
-          </div>
-          <div style={{ fontFamily: 'Fraunces, serif', fontSize: 24, fontWeight: 700, marginBottom: 4 }}>{selected.name}</div>
-          {selected.description && (
-            <p style={{ color: 'var(--ink-dim)', fontSize: 13.5, lineHeight: 1.5, marginBottom: 6 }}>{selected.description}</p>
-          )}
-          {selected.allergens && (
-            <p style={{ color: 'var(--brass)', fontSize: 11.5, marginBottom: 6 }}>Allergènes : {selected.allergens}</p>
-          )}
-
-          {settings.show_recommendations && selected.recommended_dish_id && (() => {
-            const reco = dishes.find((d) => d.id === selected.recommended_dish_id);
-            if (!reco) return null;
-            return (
-              <div className="recommend-box" onClick={() => setSelected(reco)}>
-                <div
-                  className="dish-thumb"
-                  style={{ width: 52, height: 52, backgroundImage: reco.photo_url ? `url('${reco.photo_url}')` : 'none' }}
-                />
-                <div>
-                  <div className="recommend-label">{selected.recommendation_label || 'Suggestion'}</div>
-                  <div style={{ fontWeight: 700, fontSize: 14 }}>{reco.name}</div>
-                  <div style={{ color: 'var(--ink-dim)', fontSize: 12 }}>{formatPrice(reco.price)}</div>
-                </div>
-              </div>
-            );
-          })()}
-
-          <div style={{ color: 'var(--wine)', fontWeight: 700, fontSize: 17, margin: '16px 0' }}>{formatPrice(selected.price)}</div>
-
-          <button className="btn" onClick={() => { addToCart(selected); setSelected(null); }}>
-            + Ajouter à ma commande
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // ---------- Cart overlay ----------
-  if (cartOpen) {
-    return (
-      <div className="wrap" style={{ '--wine': settings.accent_color || '#7C2D2D' }}>
-        <div className="awning" />
-        <div style={{ padding: '20px' }}>
-          <button
-            onClick={() => setCartOpen(false)}
-            style={{
-              background: 'none', border: 'none', color: 'var(--ink-dim)', fontSize: 12,
-              cursor: 'pointer', marginBottom: 14, textTransform: 'uppercase',
-              letterSpacing: '0.04em', fontFamily: "'Big Shoulders Text', sans-serif",
-            }}
-          >
-            ‹ Retour à la carte
-          </button>
-          <h1 className="title" style={{ fontSize: 24, marginBottom: 16 }}>Ma commande</h1>
-
-          {cartItems.length === 0 && (
-            <p style={{ color: 'var(--ink-dim)' }}>Aucun plat sélectionné pour l'instant.</p>
-          )}
-
-          {cartItems.map(({ dish, qty }) => (
-            <div key={dish.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--line)' }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600, fontSize: 14 }}>{dish.name}</div>
-                <div style={{ color: 'var(--ink-dim)', fontSize: 12.5 }}>{formatPrice(dish.price)}</div>
-              </div>
-              <button onClick={() => decFromCart(dish.id)} className="btn ghost" style={{ padding: '4px 10px', fontSize: 13 }}>−</button>
-              <span style={{ minWidth: 18, textAlign: 'center', fontWeight: 600 }}>{qty}</span>
-              <button onClick={() => addToCart(dish)} className="btn ghost" style={{ padding: '4px 10px', fontSize: 13 }}>+</button>
-            </div>
-          ))}
-
-          {cartItems.length > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 18, fontWeight: 700, fontSize: 16 }}>
-              <span>Total</span>
-              <span style={{ color: 'var(--wine)' }}>{cartTotal.toFixed(2).replace('.', ',')} €</span>
-            </div>
-          )}
-          <p style={{ color: 'var(--ink-dim)', fontSize: 12, marginTop: 16 }}>
-            Montrez cet écran à votre serveur pour passer commande.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // ---------- Main menu (accordion) ----------
   return (
-    <div className="wrap" style={{ '--wine': settings.accent_color || '#7C2D2D' }}>
-      <div className="awning" />
-      <div className="header">
-        <div className="eyebrow">Le Petit Basilic</div>
-        <h1 className="title">La carte</h1>
-        <p className="sub">Un coup d'œil avant de commander : touchez un plat pour voir la photo en grand — ou ajoutez-le directement à votre commande.</p>
-      </div>
-
-      <div style={{ padding: '0 20px 90px' }}>
-        {loading && <p style={{ color: 'var(--ink-dim)' }}>Chargement de la carte…</p>}
-        {!loading && dishes.length === 0 && (
-          <p style={{ color: 'var(--ink-dim)' }}>La carte n'a pas encore été mise à jour.</p>
-        )}
-
-        {Object.entries(grouped)
-          .sort((a, b) => categoryRank(a[0]) - categoryRank(b[0]))
-          .map(([catName, catData]) => {
-          const isOpen = !!openCat[catName];
-          const hasSubs = Object.keys(catData.subs).length > 0;
-          return (
-            <div key={catName} style={{ marginBottom: 10 }}>
-              <button
-                onClick={() => setOpenCat((o) => ({ ...o, [catName]: !isOpen }))}
-                className="accordion-header"
-              >
-                <span>{catName}</span>
-                <span className={`chevron ${isOpen ? 'open' : ''}`}>⌄</span>
-              </button>
-
-              {isOpen && (
-                <div className="accordion-body">
-                  {catData.direct.map((d) => (
-                    <DishRow key={d.id} dish={d} dishes={dishes} settings={settings} onView={() => setSelected(d)} onAdd={() => addToCart(d)} />
-                  ))}
-
-                  {hasSubs && Object.entries(catData.subs).map(([subName, subDishes]) => {
-                    const subKey = catName + '::' + subName;
-                    const subIsOpen = !!openSub[subKey];
-                    return (
-                      <div key={subKey} style={{ marginTop: 8 }}>
-                        <button
-                          onClick={() => setOpenSub((o) => ({ ...o, [subKey]: !subIsOpen }))}
-                          className="accordion-subheader"
-                        >
-                          <span>{subName}</span>
-                          <span className={`chevron ${subIsOpen ? 'open' : ''}`}>⌄</span>
-                        </button>
-                        {subIsOpen && (
-                          <div className="accordion-subbody">
-                            {subDishes.map((d) => (
-                              <DishRow key={d.id} dish={d} dishes={dishes} settings={settings} onView={() => setSelected(d)} onAdd={() => addToCart(d)} />
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {cartCount > 0 && (
-        <button className="cart-bar" onClick={() => setCartOpen(true)}>
-          <span>{cartCount} plat{cartCount > 1 ? 's' : ''} sélectionné{cartCount > 1 ? 's' : ''}</span>
-          <span>{cartTotal.toFixed(2).replace('.', ',')} €</span>
+    <div style={{ display: 'flex', gap: '4px', background: '#f3f4f6', padding: '4px', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+      {languages.map((lang) => (
+        <button
+          key={lang.code}
+          onClick={() => onLanguageChange(lang.code)}
+          style={{
+            padding: '4px 8px',
+            fontSize: '12px',
+            fontWeight: '600',
+            borderRadius: '6px',
+            border: 'none',
+            cursor: 'pointer',
+            background: currentLang === lang.code ? '#ffffff' : 'transparent',
+            boxShadow: currentLang === lang.code ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
+            color: currentLang === lang.code ? '#000000' : '#6b7280',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px'
+          }}
+        >
+          <span>{lang.flag}</span>
+          <span>{lang.label}</span>
         </button>
-      )}
+      ))}
     </div>
   );
 }
 
-function DishRow({ dish, dishes, settings, onView, onAdd }) {
-  const reco = settings?.show_recommendations && dish.recommended_dish_id
-    ? dishes.find((d) => d.id === dish.recommended_dish_id)
-    : null;
+export default function MenuPage() {
+  const [lang, setLang] = useState('fr');
+  const [dishes, setDishes] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const t = translations[lang] || translations.fr;
+
+  useEffect(() => {
+    async function fetchData() {
+      setLoading(true);
+      
+      const { data: catData } = await supabase
+        .from('categories')
+        .select('*')
+        .order('position', { ascending: true });
+        
+      const { data: dishData } = await supabase
+        .from('dishes')
+        .select('*');
+
+      if (catData) setCategories(catData);
+      if (dishData) setDishes(dishData);
+      setLoading(false);
+    }
+
+    fetchData();
+  }, []);
+
+  const getCategoryName = (cat) => {
+    if (lang === 'en' && cat.name_en) return cat.name_en;
+    if (lang === 'de' && cat.name_de) return cat.name_de;
+    return cat.name;
+  };
+
+  const getDishName = (dish) => {
+    if (lang === 'en' && dish.name_en) return dish.name_en;
+    if (lang === 'de' && dish.name_de) return dish.name_de;
+    return dish.name;
+  };
+
+  const getDishDescription = (dish) => {
+    if (lang === 'en' && dish.description_en) return dish.description_en;
+    if (lang === 'de' && dish.description_de) return dish.description_de;
+    return dish.description;
+  };
+
+  if (loading) {
+    return <div style={{ padding: '32px', textAlign: 'center' }}>Chargement de la carte...</div>;
+  }
+
   return (
-    <div className={`dish-row ${!dish.available ? 'unavailable' : ''}`}>
-      <div
-        onClick={dish.available ? onView : undefined}
-        className="dish-thumb"
-        style={{
-          backgroundImage: dish.photo_url ? `url('${dish.photo_url}')` : 'none',
-          cursor: dish.available ? 'pointer' : 'default',
-        }}
-      />
-      <div onClick={dish.available ? onView : undefined} style={{ flex: 1, cursor: dish.available ? 'pointer' : 'default' }}>
-        <div style={{ fontWeight: 600, fontSize: 14.5 }}>
-          {dish.name}
-          {!dish.available && <span className="badge-epuise">Épuisé</span>}
-        </div>
-        {dish.description && (
-          <div style={{ color: 'var(--ink-dim)', fontSize: 11.5, marginTop: 1 }}>{dish.description}</div>
-        )}
-        {reco && (
-          <div style={{ color: 'var(--brass)', fontSize: 11, marginTop: 2, fontWeight: 600 }}>
-            {dish.recommendation_label || 'Suggestion'} : {reco.name}
-          </div>
-        )}
-        <div style={{ color: 'var(--wine)', fontSize: 13, fontWeight: 600, marginTop: 2 }}>{formatPrice(dish.price)}</div>
-      </div>
-      {dish.available && (
-        <button onClick={onAdd} className="plus-btn" aria-label="Ajouter à la commande">+</button>
-      )}
+    <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb', paddingBottom: '80px' }}>
+      <header style={{ position: 'sticky', top: 0, zIndex: 50, backgroundColor: '#ffffff', borderBottom: '1px solid #e5e7eb', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h1 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937' }}>{t.menuTitle}</h1>
+        <LanguageSelector currentLang={lang} onLanguageChange={setLang} />
+      </header>
+
+      <main style={{ maxWidth: '448px', margin: '0 auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        {categories.map((cat) => {
+          const categoryDishes = dishes.filter((d) => d.category_id === cat.id);
+          if (categoryDishes.length === 0) return null;
+
+          return (
+            <section key={cat.id} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: 'bold', borderBottom: '2px solid #f59e0b', paddingBottom: '4px', color: '#1f2937' }}>
+                {getCategoryName(cat)}
+              </h2>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {categoryDishes.map((dish) => (
+                  <div key={dish.id} style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '12px', display: 'flex', gap: '12px', border: '1px solid #f3f4f6', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                    {dish.image_url && (
+                      <img
+                        src={dish.image_url}
+                        alt={getDishName(dish)}
+                        style={{ width: '96px', height: '96px', objectFit: 'cover', borderRadius: '8px', flexShrink: 0 }}
+                      />
+                    )}
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                      <div>
+                        <h3 style={{ fontWeight: '600', color: '#111827' }}>{getDishName(dish)}</h3>
+                        {getDishDescription(dish) && (
+                          <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
+                            {getDishDescription(dish)}
+                          </p>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
+                        <span style={{ fontWeight: 'bold', fontSize: '14px', color: '#111827' }}>
+                          {dish.price} {t.currency}
+                        </span>
+                        <button style={{ fontSize: '12px', backgroundColor: '#000000', color: '#ffffff', padding: '6px 12px', borderRadius: '8px', fontWeight: '500', border: 'none' }}>
+                          {t.addToCart}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          );
+        })}
+      </main>
     </div>
   );
 }
