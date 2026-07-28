@@ -5,14 +5,24 @@ import Image from 'next/image';
 import { supabase } from '../../lib/supabaseClient';
 import { formatPrice } from '../../lib/format';
 
+function buildTree(categories) {
+  const byParent = {};
+  categories.forEach((c) => {
+    const key = c.parent_id || 'root';
+    if (!byParent[key]) byParent[key] = [];
+    byParent[key].push(c);
+  });
+  Object.values(byParent).forEach((list) => list.sort((a, b) => a.position - b.position));
+  return byParent;
+}
+
 export default function MenuPage() {
   const [dishes, setDishes] = useState([]);
   const [categories, setCategories] = useState([]);
   const [settings, setSettings] = useState({ show_recommendations: false, accent_color: '#7C2D2D' });
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
-  const [openCat, setOpenCat] = useState({});
-  const [openSub, setOpenSub] = useState({});
+  const [openNode, setOpenNode] = useState({});
   const [cart, setCart] = useState({});
   const [cartOpen, setCartOpen] = useState(false);
 
@@ -38,25 +48,15 @@ export default function MenuPage() {
     loadSettings();
   }, []);
 
-  function categoryRank(name) {
-    const idx = categories.findIndex((c) => c.name === name);
-    return idx === -1 ? 999 : idx;
-  }
-
-  const grouped = useMemo(() => {
-    const tree = {};
-    for (const d of dishes) {
-      const cat = d.category || 'Plats';
-      const sub = d.subcategory || null;
-      if (!tree[cat]) tree[cat] = { direct: [], subs: {} };
-      if (sub) {
-        if (!tree[cat].subs[sub]) tree[cat].subs[sub] = [];
-        tree[cat].subs[sub].push(d);
-      } else {
-        tree[cat].direct.push(d);
-      }
-    }
-    return tree;
+  const byParent = useMemo(() => buildTree(categories), [categories]);
+  const dishesByCat = useMemo(() => {
+    const map = {};
+    dishes.forEach((d) => {
+      const key = d.category_id || 'sans-categorie';
+      if (!map[key]) map[key] = [];
+      map[key].push(d);
+    });
+    return map;
   }, [dishes]);
 
   function addToCart(dish) {
@@ -194,7 +194,7 @@ export default function MenuPage() {
     );
   }
 
-  // ---------- Main menu (accordion) ----------
+  // ---------- Main menu ----------
   return (
     <div className="wrap" style={{ '--wine': settings.accent_color || '#7C2D2D' }}>
       <div className="awning" />
@@ -210,54 +210,18 @@ export default function MenuPage() {
           <p style={{ color: 'var(--ink-dim)' }}>La carte n'a pas encore été mise à jour.</p>
         )}
 
-        {Object.entries(grouped)
-          .sort((a, b) => categoryRank(a[0]) - categoryRank(b[0]))
-          .map(([catName, catData]) => {
-          const isOpen = !!openCat[catName];
-          const hasSubs = Object.keys(catData.subs).length > 0;
-          return (
-            <div key={catName} style={{ marginBottom: 10 }}>
-              <button
-                onClick={() => setOpenCat((o) => ({ ...o, [catName]: !isOpen }))}
-                className="accordion-header"
-              >
-                <span>{catName}</span>
-                <span className={`chevron ${isOpen ? 'open' : ''}`}>⌄</span>
-              </button>
-
-              {isOpen && (
-                <div className="accordion-body">
-                  {catData.direct.map((d) => (
-                    <DishRow key={d.id} dish={d} dishes={dishes} settings={settings} onView={() => setSelected(d)} onAdd={() => addToCart(d)} />
-                  ))}
-
-                  {hasSubs && Object.entries(catData.subs).map(([subName, subDishes]) => {
-                    const subKey = catName + '::' + subName;
-                    const subIsOpen = !!openSub[subKey];
-                    return (
-                      <div key={subKey} style={{ marginTop: 8 }}>
-                        <button
-                          onClick={() => setOpenSub((o) => ({ ...o, [subKey]: !subIsOpen }))}
-                          className="accordion-subheader"
-                        >
-                          <span>{subName}</span>
-                          <span className={`chevron ${subIsOpen ? 'open' : ''}`}>⌄</span>
-                        </button>
-                        {subIsOpen && (
-                          <div className="accordion-subbody">
-                            {subDishes.map((d) => (
-                              <DishRow key={d.id} dish={d} dishes={dishes} settings={settings} onView={() => setSelected(d)} onAdd={() => addToCart(d)} />
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          );
-        })}
+        <CategoryLevel
+          parentId={null}
+          depth={0}
+          byParent={byParent}
+          dishesByCat={dishesByCat}
+          settings={settings}
+          dishes={dishes}
+          openNode={openNode}
+          setOpenNode={setOpenNode}
+          onView={setSelected}
+          onAdd={addToCart}
+        />
       </div>
 
       {cartCount > 0 && (
@@ -267,6 +231,51 @@ export default function MenuPage() {
         </button>
       )}
     </div>
+  );
+}
+
+function CategoryLevel({ parentId, depth, byParent, dishesByCat, settings, dishes, openNode, setOpenNode, onView, onAdd }) {
+  const key = parentId || 'root';
+  const nodes = byParent[key] || [];
+
+  return (
+    <>
+      {nodes.map((node) => {
+        const isOpen = !!openNode[node.id];
+        const directDishes = dishesByCat[node.id] || [];
+        const HeaderTag = depth === 0 ? 'accordion-header' : 'accordion-subheader';
+        return (
+          <div key={node.id} style={{ marginTop: depth === 0 ? 10 : 8, marginLeft: depth > 0 ? 8 : 0 }}>
+            <button
+              onClick={() => setOpenNode((o) => ({ ...o, [node.id]: !isOpen }))}
+              className={HeaderTag}
+            >
+              <span>{node.name}</span>
+              <span className={`chevron ${isOpen ? 'open' : ''}`}>⌄</span>
+            </button>
+            {isOpen && (
+              <div className={depth === 0 ? 'accordion-body' : 'accordion-subbody'}>
+                {directDishes.map((d) => (
+                  <DishRow key={d.id} dish={d} dishes={dishes} settings={settings} onView={() => onView(d)} onAdd={() => onAdd(d)} />
+                ))}
+                <CategoryLevel
+                  parentId={node.id}
+                  depth={depth + 1}
+                  byParent={byParent}
+                  dishesByCat={dishesByCat}
+                  settings={settings}
+                  dishes={dishes}
+                  openNode={openNode}
+                  setOpenNode={setOpenNode}
+                  onView={onView}
+                  onAdd={onAdd}
+                />
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </>
   );
 }
 
