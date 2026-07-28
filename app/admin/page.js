@@ -384,17 +384,17 @@ export default function AdminPage() {
   async function toggleSetting(key) {
     const next = { ...settings, [key]: !settings[key] };
     setSettings(next);
-    await supabase.from('settings').update({ [key]: next[key] }).eq('id', 1);
+    await supabase.from('settings').update({ [key]: next[key] }).eq('restaurant_id', restaurant.id);
   }
 
   async function setAccentColor(color) {
     setSettings((s) => ({ ...s, accent_color: color }));
-    await supabase.from('settings').update({ accent_color: color }).eq('id', 1);
+    await supabase.from('settings').update({ accent_color: color }).eq('restaurant_id', restaurant.id);
   }
 
   async function setBackgroundColor(color) {
     setSettings((s) => ({ ...s, background_color: color }));
-    await supabase.from('settings').update({ background_color: color }).eq('id', 1);
+    await supabase.from('settings').update({ background_color: color }).eq('restaurant_id', restaurant.id);
   }
 
   async function setCategoryTranslation(catId, field, value) {
