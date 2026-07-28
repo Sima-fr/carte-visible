@@ -637,5 +637,8 @@ export default function AdminPage() {
     const next = { ...settings, [key]: !settings[key] };
     setSettings(next);
     await supabase.from('settings').update({ [key]: next[key] }).eq('id', 1);
+  }async function setAccentColor(color) {
+    setSettings((s) => ({ ...s, accent_color: color }));
+    await supabase.from('settings').update({ accent_color: color }).eq('id', 1);
   }
 }
