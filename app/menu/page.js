@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { supabase } from '../../lib/supabaseClient';
 import { formatPrice } from '../../lib/format';
-import { t, dishName, dishDescription, translateAllergens, translateRecoLabel } from '../../lib/i18n';
+import { t, dishName, dishDescription, translateAllergens, translateRecoLabel, categoryName } from '../../lib/i18n';
 
 function buildTree(categories) {
   const byParent = {};
@@ -20,7 +20,7 @@ function buildTree(categories) {
 export default function MenuPage() {
   const [dishes, setDishes] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [settings, setSettings] = useState({ show_recommendations: false, accent_color: '#7C2D2D', background_color: '#FAF3E6' });
+  const [settings, setSettings] = useState({ show_recommendations: false, accent_color: '#7C2D2D', background_color: '#FAF3E6', translate_titles: false });
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [openNode, setOpenNode] = useState({});
@@ -112,7 +112,7 @@ export default function MenuPage() {
               </div>
             )}
           </div>
-          <div style={{ fontFamily: 'Fraunces, serif', fontSize: 24, fontWeight: 700, marginBottom: 4 }}>{dishName(selected, lang)}</div>
+          <div style={{ fontFamily: 'Fraunces, serif', fontSize: 24, fontWeight: 700, marginBottom: 4 }}>{dishName(selected, lang, settings.translate_titles)}</div>
           {dishDescription(selected, lang) && (
             <p style={{ color: 'var(--ink-dim)', fontSize: 13.5, lineHeight: 1.5, marginBottom: 6 }}>{dishDescription(selected, lang)}</p>
           )}
@@ -131,7 +131,7 @@ export default function MenuPage() {
                 />
                 <div>
                   <div className="recommend-label">{translateRecoLabel(selected.recommendation_label || 'Suggestion', lang)}</div>
-                  <div style={{ fontWeight: 700, fontSize: 14 }}>{dishName(reco, lang)}</div>
+                  <div style={{ fontWeight: 700, fontSize: 14 }}>{dishName(reco, lang, settings.translate_titles)}</div>
                   <div style={{ color: 'var(--ink-dim)', fontSize: 12 }}>{formatPrice(reco.price)}</div>
                 </div>
               </div>
@@ -173,7 +173,7 @@ export default function MenuPage() {
           {cartItems.map(({ dish, qty }) => (
             <div key={dish.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--line)' }}>
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600, fontSize: 14 }}>{dishName(dish, lang)}</div>
+                <div style={{ fontWeight: 600, fontSize: 14 }}>{dishName(dish, lang, settings.translate_titles)}</div>
                 <div style={{ color: 'var(--ink-dim)', fontSize: 12.5 }}>{formatPrice(dish.price)}</div>
               </div>
               <button onClick={() => decFromCart(dish.id)} className="btn ghost" style={{ padding: '4px 10px', fontSize: 13 }}>−</button>
@@ -221,7 +221,7 @@ export default function MenuPage() {
             ))}
           </div>
         </div>
-        <h1 className="title">La carte</h1>
+        <h1 className="title">{t(lang, 'menuTitle')}</h1>
         <p className="sub">{t(lang, 'subheading')}</p>
       </div>
 
@@ -272,7 +272,7 @@ function CategoryLevel({ parentId, depth, byParent, dishesByCat, settings, dishe
               onClick={() => setOpenNode((o) => ({ ...o, [node.id]: !isOpen }))}
               className={HeaderTag}
             >
-              <span>{node.name}</span>
+              <span>{categoryName(node, lang, settings.translate_titles)}</span>
               <span className={`chevron ${isOpen ? 'open' : ''}`}>⌄</span>
             </button>
             {isOpen && (
@@ -318,7 +318,7 @@ function DishRow({ dish, dishes, settings, lang, onView, onAdd }) {
       />
       <div onClick={dish.available ? onView : undefined} style={{ flex: 1, cursor: dish.available ? 'pointer' : 'default' }}>
         <div style={{ fontWeight: 600, fontSize: 14.5 }}>
-          {dishName(dish, lang)}
+          {dishName(dish, lang, settings?.translate_titles)}
           {!dish.available && <span className="badge-epuise">Épuisé</span>}
         </div>
         {dishDescription(dish, lang) && (
@@ -326,7 +326,7 @@ function DishRow({ dish, dishes, settings, lang, onView, onAdd }) {
         )}
         {reco && (
           <div style={{ color: 'var(--brass)', fontSize: 11, marginTop: 2, fontWeight: 600 }}>
-            {translateRecoLabel(dish.recommendation_label || 'Suggestion', lang)} : {dishName(reco, lang)}
+            {translateRecoLabel(dish.recommendation_label || 'Suggestion', lang)} : {dishName(reco, lang, settings?.translate_titles)}
           </div>
         )}
         <div style={{ color: 'var(--wine)', fontSize: 13, fontWeight: 600, marginTop: 2 }}>{formatPrice(dish.price)}</div>
