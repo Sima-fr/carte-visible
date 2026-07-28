@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { supabase } from '../../lib/supabaseClient';
 import { formatPrice } from '../../lib/format';
+import { t, dishName, dishDescription, translateAllergens, translateRecoLabel } from '../../lib/i18n';
 
 function buildTree(categories) {
   const byParent = {};
@@ -25,6 +26,7 @@ export default function MenuPage() {
   const [openNode, setOpenNode] = useState({});
   const [cart, setCart] = useState({});
   const [cartOpen, setCartOpen] = useState(false);
+  const [lang, setLang] = useState('fr');
 
   useEffect(() => {
     async function load() {
@@ -92,7 +94,7 @@ export default function MenuPage() {
               letterSpacing: '0.04em', fontFamily: "'Big Shoulders Text', sans-serif",
             }}
           >
-            ‹ Retour à la carte
+            {t(lang, 'back')}
           </button>
           <div style={{ position: 'relative', width: '100%', height: 320, borderRadius: 14, overflow: 'hidden', marginBottom: 14, background: '#EFE6D4' }}>
             {selected.photo_url ? (
@@ -106,16 +108,16 @@ export default function MenuPage() {
               />
             ) : (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--ink-dim)', fontSize: 13 }}>
-                Pas encore de photo
+                {t(lang, 'noPhoto')}
               </div>
             )}
           </div>
-          <div style={{ fontFamily: 'Fraunces, serif', fontSize: 24, fontWeight: 700, marginBottom: 4 }}>{selected.name}</div>
-          {selected.description && (
-            <p style={{ color: 'var(--ink-dim)', fontSize: 13.5, lineHeight: 1.5, marginBottom: 6 }}>{selected.description}</p>
+          <div style={{ fontFamily: 'Fraunces, serif', fontSize: 24, fontWeight: 700, marginBottom: 4 }}>{dishName(selected, lang)}</div>
+          {dishDescription(selected, lang) && (
+            <p style={{ color: 'var(--ink-dim)', fontSize: 13.5, lineHeight: 1.5, marginBottom: 6 }}>{dishDescription(selected, lang)}</p>
           )}
           {selected.allergens && (
-            <p style={{ color: 'var(--brass)', fontSize: 11.5, marginBottom: 6 }}>Allergènes : {selected.allergens}</p>
+            <p style={{ color: 'var(--brass)', fontSize: 11.5, marginBottom: 6 }}>{t(lang, 'allergensLabel')} : {translateAllergens(selected.allergens, lang)}</p>
           )}
 
           {settings.show_recommendations && selected.recommended_dish_id && (() => {
@@ -128,8 +130,8 @@ export default function MenuPage() {
                   style={{ width: 52, height: 52, backgroundImage: reco.photo_url ? `url('${reco.photo_url}')` : 'none' }}
                 />
                 <div>
-                  <div className="recommend-label">{selected.recommendation_label || 'Suggestion'}</div>
-                  <div style={{ fontWeight: 700, fontSize: 14 }}>{reco.name}</div>
+                  <div className="recommend-label">{translateRecoLabel(selected.recommendation_label || 'Suggestion', lang)}</div>
+                  <div style={{ fontWeight: 700, fontSize: 14 }}>{dishName(reco, lang)}</div>
                   <div style={{ color: 'var(--ink-dim)', fontSize: 12 }}>{formatPrice(reco.price)}</div>
                 </div>
               </div>
@@ -139,7 +141,7 @@ export default function MenuPage() {
           <div style={{ color: 'var(--wine)', fontWeight: 700, fontSize: 17, margin: '16px 0' }}>{formatPrice(selected.price)}</div>
 
           <button className="btn" onClick={() => { addToCart(selected); setSelected(null); }}>
-            + Ajouter à ma commande
+            {t(lang, 'addToOrder')}
           </button>
         </div>
       </div>
@@ -160,18 +162,18 @@ export default function MenuPage() {
               letterSpacing: '0.04em', fontFamily: "'Big Shoulders Text', sans-serif",
             }}
           >
-            ‹ Retour à la carte
+            {t(lang, 'back')}
           </button>
-          <h1 className="title" style={{ fontSize: 24, marginBottom: 16 }}>Ma commande</h1>
+          <h1 className="title" style={{ fontSize: 24, marginBottom: 16 }}>{t(lang, 'myOrder')}</h1>
 
           {cartItems.length === 0 && (
-            <p style={{ color: 'var(--ink-dim)' }}>Aucun plat sélectionné pour l'instant.</p>
+            <p style={{ color: 'var(--ink-dim)' }}>{t(lang, 'emptyCart')}</p>
           )}
 
           {cartItems.map(({ dish, qty }) => (
             <div key={dish.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--line)' }}>
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600, fontSize: 14 }}>{dish.name}</div>
+                <div style={{ fontWeight: 600, fontSize: 14 }}>{dishName(dish, lang)}</div>
                 <div style={{ color: 'var(--ink-dim)', fontSize: 12.5 }}>{formatPrice(dish.price)}</div>
               </div>
               <button onClick={() => decFromCart(dish.id)} className="btn ghost" style={{ padding: '4px 10px', fontSize: 13 }}>−</button>
@@ -182,12 +184,12 @@ export default function MenuPage() {
 
           {cartItems.length > 0 && (
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 18, fontWeight: 700, fontSize: 16 }}>
-              <span>Total</span>
+              <span>{t(lang, 'total')}</span>
               <span style={{ color: 'var(--wine)' }}>{cartTotal.toFixed(2).replace('.', ',')} €</span>
             </div>
           )}
           <p style={{ color: 'var(--ink-dim)', fontSize: 12, marginTop: 16 }}>
-            Montrez cet écran à votre serveur pour passer commande.
+            {t(lang, 'showServer')}
           </p>
         </div>
       </div>
@@ -199,15 +201,34 @@ export default function MenuPage() {
     <div className="wrap" style={{ '--wine': settings.accent_color || '#7C2D2D', '--paper': settings.background_color || '#FAF3E6' }}>
       <div className="awning" />
       <div className="header">
-        <div className="eyebrow">Le Petit Basilic</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div className="eyebrow">Le Petit Basilic</div>
+          <div style={{ display: 'flex', gap: 4 }}>
+            {['fr', 'en', 'de'].map((code) => (
+              <button
+                key={code}
+                onClick={() => setLang(code)}
+                className="toggle-btn"
+                style={{
+                  marginLeft: 0,
+                  color: lang === code ? 'var(--wine)' : 'var(--ink-dim)',
+                  borderColor: lang === code ? 'var(--wine)' : 'var(--line)',
+                  background: lang === code ? 'rgba(124,45,45,0.08)' : 'var(--paper)',
+                }}
+              >
+                {code.toUpperCase()}
+              </button>
+            ))}
+          </div>
+        </div>
         <h1 className="title">La carte</h1>
-        <p className="sub">Un coup d'œil avant de commander : touchez un plat pour voir la photo en grand — ou ajoutez-le directement à votre commande.</p>
+        <p className="sub">{t(lang, 'subheading')}</p>
       </div>
 
       <div style={{ padding: '0 20px 90px' }}>
-        {loading && <p style={{ color: 'var(--ink-dim)' }}>Chargement de la carte…</p>}
+        {loading && <p style={{ color: 'var(--ink-dim)' }}>{t(lang, 'loading')}</p>}
         {!loading && dishes.length === 0 && (
-          <p style={{ color: 'var(--ink-dim)' }}>La carte n'a pas encore été mise à jour.</p>
+          <p style={{ color: 'var(--ink-dim)' }}>{t(lang, 'empty')}</p>
         )}
 
         <CategoryLevel
@@ -217,6 +238,7 @@ export default function MenuPage() {
           dishesByCat={dishesByCat}
           settings={settings}
           dishes={dishes}
+          lang={lang}
           openNode={openNode}
           setOpenNode={setOpenNode}
           onView={setSelected}
@@ -226,7 +248,7 @@ export default function MenuPage() {
 
       {cartCount > 0 && (
         <button className="cart-bar" onClick={() => setCartOpen(true)}>
-          <span>{cartCount} plat{cartCount > 1 ? 's' : ''} sélectionné{cartCount > 1 ? 's' : ''}</span>
+          <span>{t(lang, 'dishesSelected', cartCount)}</span>
           <span>{cartTotal.toFixed(2).replace('.', ',')} €</span>
         </button>
       )}
@@ -234,7 +256,7 @@ export default function MenuPage() {
   );
 }
 
-function CategoryLevel({ parentId, depth, byParent, dishesByCat, settings, dishes, openNode, setOpenNode, onView, onAdd }) {
+function CategoryLevel({ parentId, depth, byParent, dishesByCat, settings, dishes, lang, openNode, setOpenNode, onView, onAdd }) {
   const key = parentId || 'root';
   const nodes = byParent[key] || [];
 
@@ -256,7 +278,7 @@ function CategoryLevel({ parentId, depth, byParent, dishesByCat, settings, dishe
             {isOpen && (
               <div className={depth === 0 ? 'accordion-body' : 'accordion-subbody'}>
                 {directDishes.map((d) => (
-                  <DishRow key={d.id} dish={d} dishes={dishes} settings={settings} onView={() => onView(d)} onAdd={() => onAdd(d)} />
+                  <DishRow key={d.id} dish={d} dishes={dishes} settings={settings} lang={lang} onView={() => onView(d)} onAdd={() => onAdd(d)} />
                 ))}
                 <CategoryLevel
                   parentId={node.id}
@@ -265,6 +287,7 @@ function CategoryLevel({ parentId, depth, byParent, dishesByCat, settings, dishe
                   dishesByCat={dishesByCat}
                   settings={settings}
                   dishes={dishes}
+                  lang={lang}
                   openNode={openNode}
                   setOpenNode={setOpenNode}
                   onView={onView}
@@ -279,7 +302,7 @@ function CategoryLevel({ parentId, depth, byParent, dishesByCat, settings, dishe
   );
 }
 
-function DishRow({ dish, dishes, settings, onView, onAdd }) {
+function DishRow({ dish, dishes, settings, lang, onView, onAdd }) {
   const reco = settings?.show_recommendations && dish.recommended_dish_id
     ? dishes.find((d) => d.id === dish.recommended_dish_id)
     : null;
@@ -295,15 +318,15 @@ function DishRow({ dish, dishes, settings, onView, onAdd }) {
       />
       <div onClick={dish.available ? onView : undefined} style={{ flex: 1, cursor: dish.available ? 'pointer' : 'default' }}>
         <div style={{ fontWeight: 600, fontSize: 14.5 }}>
-          {dish.name}
+          {dishName(dish, lang)}
           {!dish.available && <span className="badge-epuise">Épuisé</span>}
         </div>
-        {dish.description && (
-          <div style={{ color: 'var(--ink-dim)', fontSize: 11.5, marginTop: 1 }}>{dish.description}</div>
+        {dishDescription(dish, lang) && (
+          <div style={{ color: 'var(--ink-dim)', fontSize: 11.5, marginTop: 1 }}>{dishDescription(dish, lang)}</div>
         )}
         {reco && (
           <div style={{ color: 'var(--brass)', fontSize: 11, marginTop: 2, fontWeight: 600 }}>
-            {dish.recommendation_label || 'Suggestion'} : {reco.name}
+            {translateRecoLabel(dish.recommendation_label || 'Suggestion', lang)} : {dishName(reco, lang)}
           </div>
         )}
         <div style={{ color: 'var(--wine)', fontSize: 13, fontWeight: 600, marginTop: 2 }}>{formatPrice(dish.price)}</div>
