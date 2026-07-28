@@ -114,10 +114,12 @@ export default function AdminPage() {
   }
 
   async function loadDishes() {
+    if (!restaurant) return [];
     setLoading(true);
     const { data, error } = await supabase
       .from('dishes')
       .select('*')
+      .eq('restaurant_id', restaurant.id)
       .order('created_at', { ascending: false });
     if (!error) setDishes(data);
     setLoading(false);
@@ -125,24 +127,32 @@ export default function AdminPage() {
   }
 
   async function loadCategories() {
+    if (!restaurant) return [];
     const { data, error } = await supabase
       .from('categories')
       .select('*')
+      .eq('restaurant_id', restaurant.id)
       .order('position', { ascending: true });
     if (!error) setCategories(data);
     return data || [];
   }
 
   async function loadSettings() {
-    const { data, error } = await supabase.from('settings').select('*').eq('id', 1).single();
+    if (!restaurant) return;
+    const { data, error } = await supabase
+      .from('settings')
+      .select('*')
+      .eq('restaurant_id', restaurant.id)
+      .single();
     if (!error && data) setSettings(data);
   }
 
   useEffect(() => {
+    if (!restaurant) return;
     loadDishes();
     loadCategories();
     loadSettings();
-  }, []);
+  }, [restaurant]);
 
   const byParent = useMemo(() => buildTree(categories), [categories]);
   const flatOptions = useMemo(() => flattenForSelect(byParent, 'root', 0, []), [byParent]);
