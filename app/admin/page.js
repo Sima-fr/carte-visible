@@ -696,12 +696,41 @@ export default function AdminPage() {
           </div>
           <div className="toggle-row" style={{ borderBottom: 'none' }}>
             <div>
-              <div className="toggle-label">Couleur de la carte</div><div className="toggle-row" style={{ borderBottom: 'none' }}>
+              <div className="toggle-label">Couleur de la carte</div>
+              <div className="toggle-desc">Change la couleur d'accent vue par tes clients sur /menu (et ici).</div>
+            </div>
+            <input
+              type="color"
+              value={settings.accent_color || '#7C2D2D'}
+              onChange={(e) => setAccentColor(e.target.value)}
+              style={{ width: 44, height: 32, border: '1px solid var(--line)', borderRadius: 8, padding: 2, background: 'none', cursor: 'pointer', flexShrink: 0, marginLeft: 12 }}
+            />
+          </div>
+          <div className="toggle-row">
             <div>
-              <div className="toggle-label">Couleur de fond</div><div className="toggle-row">
+              <div className="toggle-label">Couleur de fond</div>
+              <div className="toggle-desc">Change la couleur d'arrière-plan de la carte.</div>
+            </div>
+            <input
+              type="color"
+              value={settings.background_color || '#FAF3E6'}
+              onChange={(e) => setBackgroundColor(e.target.value)}
+              style={{ width: 44, height: 32, border: '1px solid var(--line)', borderRadius: 8, padding: 2, background: 'none', cursor: 'pointer', flexShrink: 0, marginLeft: 12 }}
+            />
+          </div>
+          <div className="toggle-row">
+            <div>
               <div className="toggle-label">Traduire aussi les titres</div>
               <div className="toggle-desc">Si activé, les noms des plats et des catégories se traduisent aussi (sinon seulement descriptions/allergènes/textes fixes).</div>
-            </div><div className="toggle-row" style={{ borderBottom: 'none' }}>
+            </div>
+            <button
+              className={`toggle-btn ${settings.translate_titles ? 'on' : ''}`}
+              onClick={() => toggleSetting('translate_titles')}
+            >
+              {settings.translate_titles ? 'Activé' : 'Désactivé'}
+            </button>
+          </div>
+          <div className="toggle-row" style={{ borderBottom: 'none' }}>
             <div>
               <div className="toggle-label">Traduction automatique</div>
               <div className="toggle-desc">Remplit automatiquement les traductions manquantes (plats et catégories) via un service gratuit. Reclique après avoir ajouté de nouveaux plats.</div>
@@ -715,31 +744,6 @@ export default function AdminPage() {
               {autoTranslating ? 'Traduction…' : 'Traduire automatiquement'}
             </button>
           </div>
-            <button
-              className={`toggle-btn ${settings.translate_titles ? 'on' : ''}`}
-              onClick={() => toggleSetting('translate_titles')}
-            >
-              {settings.translate_titles ? 'Activé' : 'Désactivé'}
-            </button>
-          </div>
-              <div className="toggle-desc">Change la couleur d'arrière-plan de la carte.</div>
-            </div>
-            <input
-              type="color"
-              value={settings.background_color || '#FAF3E6'}
-              onChange={(e) => setBackgroundColor(e.target.value)}
-              style={{ width: 44, height: 32, border: '1px solid var(--line)', borderRadius: 8, padding: 2, background: 'none', cursor: 'pointer', flexShrink: 0, marginLeft: 12 }}
-            />
-          </div>
-              <div className="toggle-desc">Change la couleur d'accent vue par tes clients sur /menu (et ici).</div>
-            </div>
-            <input
-              type="color"
-              value={settings.accent_color || '#7C2D2D'}
-              onChange={(e) => setAccentColor(e.target.value)}
-              style={{ width: 44, height: 32, border: '1px solid var(--line)', borderRadius: 8, padding: 2, background: 'none', cursor: 'pointer', flexShrink: 0, marginLeft: 12 }}
-            />
-          </div>
         </div>
       </div>
     </div>
@@ -752,7 +756,7 @@ function CategoryTree(props) {
     renamingId, renameValue, setRenamingId, setRenameValue,
     onRename, onMove, onDelete,
     addingChildFor, setAddingChildFor, newChildName, setNewChildName, onAddChild,
-  translateTitles, onSaveTranslation,
+    translateTitles, onSaveTranslation,
   } = props;
   const key = parentId || 'root';
   const nodes = byParent[key] || [];
@@ -810,7 +814,7 @@ function CategoryTree(props) {
             )}
           </div>
 
-{translateTitles && renamingId !== node.id && (
+          {translateTitles && renamingId !== node.id && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 4, marginBottom: 8, marginLeft: 18 }}>
               <input
                 defaultValue={node.name_en || ''}
