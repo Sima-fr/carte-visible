@@ -66,7 +66,52 @@ export default function AdminPage() {
   const [renameValue, setRenameValue] = useState('');
   const [addingChildFor, setAddingChildFor] = useState(null);
   const [autoTranslating, setAutoTranslating] = useState(false);
-  const [newChildName, setNewChildName] = useState('');
+  const [newChildName, setNewChildName] = useState('');const [session, setSession] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [restaurant, setRestaurant] = useState(null);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [loggingIn, setLoggingIn] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setAuthLoading(false);
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, sess) => {
+      setSession(sess);
+    });
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    async function loadRestaurant() {
+      if (!session) { setRestaurant(null); return; }
+      const { data } = await supabase
+        .from('restaurants')
+        .select('*')
+        .eq('owner_id', session.user.id)
+        .single();
+      setRestaurant(data || null);
+    }
+    loadRestaurant();
+  }, [session]);
+
+  async function handleLogin() {
+    setLoginError('');
+    setLoggingIn(true);
+    const { error } = await supabase.auth.signInWithPassword({
+      email: loginEmail.trim(),
+      password: loginPassword,
+    });
+    if (error) setLoginError("Email ou mot de passe incorrect.");
+    setLoggingIn(false);
+  }
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+  }
 
   async function loadDishes() {
     setLoading(true);
