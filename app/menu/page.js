@@ -29,25 +29,29 @@ export default function MenuPage() {
   const [lang, setLang] = useState('fr');
 
   useEffect(() => {
-    async function load() {
-      const { data, error } = await supabase
-        .from('dishes')
+    async function loadAll() {
+      const { data: restaurant } = await supabase
+        .from('restaurants')
         .select('*')
-        .order('created_at', { ascending: false });
-      if (!error) setDishes(data);
+        .eq('slug', 'le-petit-basilic')
+        .single();
+      if (!restaurant) {
+        setLoading(false);
+        return;
+      }
+
+      const [dishesRes, categoriesRes, settingsRes] = await Promise.all([
+        supabase.from('dishes').select('*').eq('restaurant_id', restaurant.id).order('created_at', { ascending: false }),
+        supabase.from('categories').select('*').eq('restaurant_id', restaurant.id).order('position', { ascending: true }),
+        supabase.from('settings').select('*').eq('restaurant_id', restaurant.id).single(),
+      ]);
+
+      if (dishesRes.data) setDishes(dishesRes.data);
+      if (categoriesRes.data) setCategories(categoriesRes.data);
+      if (settingsRes.data) setSettings(settingsRes.data);
       setLoading(false);
     }
-    async function loadCategories() {
-      const { data } = await supabase.from('categories').select('*').order('position', { ascending: true });
-      if (data) setCategories(data);
-    }
-    async function loadSettings() {
-      const { data } = await supabase.from('settings').select('*').eq('id', 1).single();
-      if (data) setSettings(data);
-    }
-    load();
-    loadCategories();
-    loadSettings();
+    loadAll();
   }, []);
 
   const byParent = useMemo(() => buildTree(categories), [categories]);
