@@ -328,10 +328,13 @@ export default function AdminPage() {
   async function setAccentColor(color) {
     setSettings((s) => ({ ...s, accent_color: color }));
     await supabase.from('settings').update({ accent_color: color }).eq('id', 1);
+  }async function setBackgroundColor(color) {
+    setSettings((s) => ({ ...s, background_color: color }));
+    await supabase.from('settings').update({ background_color: color }).eq('id', 1);
   }
 
   return (
-    <div className="wrap" style={{ '--wine': settings.accent_color || '#7C2D2D' }}>
+    <div className="wrap" style={{ '--wine': settings.accent_color || '#7C2D2D', '--paper': settings.background_color || '#FAF3E6' }}>
       <div className="awning" />
       <div className="header">
         <div className="eyebrow">Espace restaurateur</div>
@@ -638,7 +641,18 @@ export default function AdminPage() {
           </div>
           <div className="toggle-row" style={{ borderBottom: 'none' }}>
             <div>
-              <div className="toggle-label">Couleur de la carte</div>
+              <div className="toggle-label">Couleur de la carte</div><div className="toggle-row" style={{ borderBottom: 'none' }}>
+            <div>
+              <div className="toggle-label">Couleur de fond</div>
+              <div className="toggle-desc">Change la couleur d'arrière-plan de la carte.</div>
+            </div>
+            <input
+              type="color"
+              value={settings.background_color || '#FAF3E6'}
+              onChange={(e) => setBackgroundColor(e.target.value)}
+              style={{ width: 44, height: 32, border: '1px solid var(--line)', borderRadius: 8, padding: 2, background: 'none', cursor: 'pointer', flexShrink: 0, marginLeft: 12 }}
+            />
+          </div>
               <div className="toggle-desc">Change la couleur d'accent vue par tes clients sur /menu (et ici).</div>
             </div>
             <input
