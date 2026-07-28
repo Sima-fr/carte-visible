@@ -2,9 +2,30 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { translations } from '@/lib/translations';
 
-// Composant interne pour la sélection de la langue
+// Dictionnaire de traduction intégré
+const translations = {
+  fr: {
+    menuTitle: "Coup d'Œil",
+    addToCart: "Ajouter au panier",
+    currency: "€",
+    loading: "Chargement de la carte...",
+  },
+  en: {
+    menuTitle: "Menu",
+    addToCart: "Add to cart",
+    currency: "€",
+    loading: "Loading menu...",
+  },
+  de: {
+    menuTitle: "Speisekarte",
+    addToCart: "Hinzufügen",
+    currency: "€",
+    loading: "Speisekarte wird geladen...",
+  }
+};
+
+// Sélecteur de langue intégré
 function LanguageSelector({ currentLang, onLanguageChange }) {
   const languages = [
     { code: 'fr', label: 'FR', flag: '🇫🇷' },
@@ -89,7 +110,7 @@ export default function MenuPage() {
   };
 
   if (loading) {
-    return <div style={{ padding: '32px', textAlign: 'center' }}>Chargement de la carte...</div>;
+    return <div style={{ padding: '32px', textAlign: 'center' }}>{t.loading}</div>;
   }
 
   return (
