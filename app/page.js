@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import LanguageSelector from '../../components/LanguageSelector';
+import LanguageSelector from '../components/LanguageSelector';
 export default function Home() {
   const [lang, setLang] = useState('fr');
   const t = translations[lang] || translations.fr;
