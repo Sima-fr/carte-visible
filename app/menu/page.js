@@ -8,7 +8,7 @@ import { formatPrice } from '../../lib/format';
 export default function MenuPage() {
   const [dishes, setDishes] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [settings, setSettings] = useState({ show_recommendations: false });
+  const [settings, setSettings] = useState({ show_recommendations: false, accent_color: '#7C2D2D' });
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [openCat, setOpenCat] = useState({});
@@ -81,7 +81,7 @@ export default function MenuPage() {
   // ---------- Photo detail overlay ----------
   if (selected) {
     return (
-      <div className="wrap">
+      <div className="wrap" style={{ '--wine': settings.accent_color || '#7C2D2D' }}>
         <div className="awning" />
         <div style={{ padding: '20px' }}>
           <button
@@ -149,7 +149,7 @@ export default function MenuPage() {
   // ---------- Cart overlay ----------
   if (cartOpen) {
     return (
-      <div className="wrap">
+      <div className="wrap" style={{ '--wine': settings.accent_color || '#7C2D2D' }}>
         <div className="awning" />
         <div style={{ padding: '20px' }}>
           <button
@@ -196,7 +196,7 @@ export default function MenuPage() {
 
   // ---------- Main menu (accordion) ----------
   return (
-    <div className="wrap">
+    <div className="wrap" style={{ '--wine': settings.accent_color || '#7C2D2D' }}>
       <div className="awning" />
       <div className="header">
         <div className="eyebrow">Le Petit Basilic</div>
