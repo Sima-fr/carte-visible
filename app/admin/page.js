@@ -290,7 +290,7 @@ export default function AdminPage() {
     await supabase.from('categories').update({ position: b.position }).eq('id', a.id);
     await supabase.from('categories').update({ position: a.position }).eq('id', b.id);
     loadCategories();
-  }const siblings = byParent[node.parent_id || 'root'];
+  }    async function renameCategory(node, newName) {     const trimmed = newName.trim();     if (!trimmed || trimmed === node.name) {       setRenamingId(null);       return;     }     const siblings = byParent[node.parent_id || 'root'];
     const target = siblings.find((c) => c.name === trimmed && c.id !== node.id);
     if (target) {
       await supabase.from('dishes').update({ category_id: target.id }).eq('category_id', node.id);
