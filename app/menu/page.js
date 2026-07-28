@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 
-// Dictionnaire de traduction
 const translations = {
   fr: {
     menuTitle: "Coup d'Œil",
@@ -25,7 +24,6 @@ const translations = {
   }
 };
 
-// Sélecteur de langue
 function LanguageSelector({ currentLang, onLanguageChange }) {
   const languages = [
     { code: 'fr', label: 'FR', flag: '🇫🇷' },
@@ -34,25 +32,16 @@ function LanguageSelector({ currentLang, onLanguageChange }) {
   ];
 
   return (
-    <div style={{ display: 'flex', gap: '4px', background: '#f3f4f6', padding: '4px', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+    <div className="flex gap-1 bg-gray-100 p-1 rounded-xl border border-gray-200">
       {languages.map((lang) => (
         <button
           key={lang.code}
           onClick={() => onLanguageChange(lang.code)}
-          style={{
-            padding: '4px 8px',
-            fontSize: '12px',
-            fontWeight: '600',
-            borderRadius: '6px',
-            border: 'none',
-            cursor: 'pointer',
-            background: currentLang === lang.code ? '#ffffff' : 'transparent',
-            boxShadow: currentLang === lang.code ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
-            color: currentLang === lang.code ? '#000000' : '#6b7280',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px'
-          }}
+          className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 ${
+            currentLang === lang.code
+              ? 'bg-white text-gray-900 shadow-sm'
+              : 'text-gray-500 hover:text-gray-900'
+          }`}
         >
           <span>{lang.flag}</span>
           <span>{lang.label}</span>
@@ -110,51 +99,58 @@ export default function MenuPage() {
   };
 
   if (loading) {
-    return <div style={{ padding: '32px', textAlign: 'center' }}>{t.loading}</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-500 font-medium">
+        {t.loading}
+      </div>
+    );
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb', paddingBottom: '80px' }}>
-      <header style={{ position: 'sticky', top: 0, zIndex: 50, backgroundColor: '#ffffff', borderBottom: '1px solid #e5e7eb', padding: '12px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937' }}>{t.menuTitle}</h1>
+    <div className="min-h-screen bg-gray-50 pb-20">
+      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200 px-4 py-3 flex justify-between items-center max-w-md mx-auto">
+        <h1 className="text-xl font-bold text-gray-900 tracking-tight">{t.menuTitle}</h1>
         <LanguageSelector currentLang={lang} onLanguageChange={setLang} />
       </header>
 
-      <main style={{ maxWidth: '448px', margin: '0 auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <main className="max-w-md mx-auto px-4 py-6 flex flex-col gap-8">
         {categories.map((cat) => {
           const categoryDishes = dishes.filter((d) => d.category_id === cat.id);
           if (categoryDishes.length === 0) return null;
 
           return (
-            <section key={cat.id} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <h2 style={{ fontSize: '18px', fontWeight: 'bold', borderBottom: '2px solid #f59e0b', paddingBottom: '4px', color: '#1f2937' }}>
+            <section key={cat.id} className="flex flex-col gap-4">
+              <h2 className="text-lg font-bold text-gray-900 border-b-2 border-amber-500 pb-1 w-fit">
                 {getCategoryName(cat)}
               </h2>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div className="flex flex-col gap-3">
                 {categoryDishes.map((dish) => (
-                  <div key={dish.id} style={{ backgroundColor: '#ffffff', borderRadius: '12px', padding: '12px', display: 'flex', gap: '12px', border: '1px solid #f3f4f6', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                  <div 
+                    key={dish.id} 
+                    className="bg-white rounded-2xl p-3 flex gap-3 border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
+                  >
                     {dish.image_url && (
                       <img
                         src={dish.image_url}
                         alt={getDishName(dish)}
-                        style={{ width: '96px', height: '96px', objectFit: 'cover', borderRadius: '8px', flexShrink: 0 }}
+                        className="w-24 h-24 object-cover rounded-xl flex-shrink-0"
                       />
                     )}
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <div className="flex-1 flex flex-col justify-between py-0.5">
                       <div>
-                        <h3 style={{ fontWeight: '600', color: '#111827' }}>{getDishName(dish)}</h3>
+                        <h3 className="font-semibold text-gray-900 text-base leading-snug">{getDishName(dish)}</h3>
                         {getDishDescription(dish) && (
-                          <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
+                          <p className="text-xs text-gray-500 mt-1 line-clamp-2">
                             {getDishDescription(dish)}
                           </p>
                         )}
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
-                        <span style={{ fontWeight: 'bold', fontSize: '14px', color: '#111827' }}>
+                      <div className="flex justify-between items-center mt-2">
+                        <span className="font-bold text-sm text-gray-900">
                           {dish.price} {t.currency}
                         </span>
-                        <button style={{ fontSize: '12px', backgroundColor: '#000000', color: '#ffffff', padding: '6px 12px', borderRadius: '8px', fontWeight: '500', border: 'none' }}>
+                        <button className="text-xs bg-black text-white px-3 py-1.5 rounded-xl font-medium active:scale-95 transition-transform">
                           {t.addToCart}
                         </button>
                       </div>
