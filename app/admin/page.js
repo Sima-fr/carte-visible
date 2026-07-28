@@ -54,6 +54,7 @@ export default function AdminPage() {
   const [settings, setSettings] = useState({ show_recommendations: false, track_stats: false, accent_color: '#7C2D2D', background_color: '#FAF3E6', translate_titles: false });
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('dishes');
   const [editingId, setEditingId] = useState(null);
   const [openDishCat, setOpenDishCat] = useState({});
   const [form, setForm] = useState(emptyForm);
@@ -154,7 +155,7 @@ export default function AdminPage() {
     const checked = existingAllergens.filter((a) => ALLERGEN_LIST.includes(a));
     const custom = existingAllergens.filter((a) => !ALLERGEN_LIST.includes(a)).join(', ');
     setEditingId(dish.id);
-   setForm({
+    setForm({
       name: dish.name || '',
       price: dish.price || '',
       categoryId: dish.category_id || '',
@@ -179,7 +180,9 @@ export default function AdminPage() {
     setForm(emptyForm);
     setFile(null);
     setPreview(null);
-  }async function saveDish() {
+  }
+
+  async function saveDish() {
     if (!form.name.trim() || !form.price.trim()) return;
     setSaving(true);
 
@@ -226,7 +229,7 @@ export default function AdminPage() {
 
     const allergensCombined = [...form.allergensChecked, ...form.allergensCustom.split(',').map((a) => a.trim()).filter(Boolean)].join(', ');
 
-   const payload = {
+    const payload = {
       name: form.name.trim(),
       price: form.price.trim(),
       category_id: categoryId || null,
@@ -276,6 +279,7 @@ export default function AdminPage() {
     loadDishes();
   }
 
+  // ---------- Category tree management ----------
   async function moveCategory(node, dir) {
     const siblings = byParent[node.parent_id || 'root'];
     const idx = siblings.findIndex((c) => c.id === node.id);
@@ -286,15 +290,7 @@ export default function AdminPage() {
     await supabase.from('categories').update({ position: b.position }).eq('id', a.id);
     await supabase.from('categories').update({ position: a.position }).eq('id', b.id);
     loadCategories();
-  }
-
-  async function renameCategory(node, newName) {
-    const trimmed = newName.trim();
-    if (!trimmed || trimmed === node.name) {
-      setRenamingId(null);
-      return;
-    }
-    const siblings = byParent[node.parent_id || 'root'];
+  }const siblings = byParent[node.parent_id || 'root'];
     const target = siblings.find((c) => c.name === trimmed && c.id !== node.id);
     if (target) {
       await supabase.from('dishes').update({ category_id: target.id }).eq('category_id', node.id);
@@ -339,13 +335,19 @@ export default function AdminPage() {
   async function setAccentColor(color) {
     setSettings((s) => ({ ...s, accent_color: color }));
     await supabase.from('settings').update({ accent_color: color }).eq('id', 1);
-  }async function setBackgroundColor(color) {
+  }
+
+  async function setBackgroundColor(color) {
     setSettings((s) => ({ ...s, background_color: color }));
     await supabase.from('settings').update({ background_color: color }).eq('id', 1);
-  }async function setCategoryTranslation(catId, field, value) {
+  }
+
+  async function setCategoryTranslation(catId, field, value) {
     await supabase.from('categories').update({ [field]: value || null }).eq('id', catId);
     loadCategories();
-  }async function autoTranslateAll() {
+  }
+
+  async function autoTranslateAll() {
     setAutoTranslating(true);
     try {
       for (const cat of categories) {
@@ -380,14 +382,33 @@ export default function AdminPage() {
       <div className="awning" />
       <div className="header">
         <div className="eyebrow">Espace restaurateur</div>
-        <h1 className="title">Ma carte</h1>
+        <h1 className="title">
+          {activeTab === 'dishes' && 'Ma carte'}
+          {activeTab === 'categories' && 'Mes catégories'}
+          {activeTab === 'settings' && 'Réglages'}
+        </h1>
         <p className="sub">
-          Ajoutez, mettez à jour ou retirez des plats. Les changements sont visibles côté client immédiatement.{' '}
+          {activeTab === 'dishes' && "Ajoutez, mettez à jour ou retirez des plats."}
+          {activeTab === 'categories' && "Organisez, réordonnez et traduisez vos catégories et sous-catégories."}
+          {activeTab === 'settings' && "Options, couleurs et traductions de votre carte."}
+          {' '}Les changements sont visibles côté client immédiatement.{' '}
           <a href="/menu" style={{ color: 'var(--wine)', fontWeight: 600 }}>Voir la carte client →</a>
         </p>
+        <div className="admin-tabs">
+          <button className={`admin-tab ${activeTab === 'dishes' ? 'active' : ''}`} onClick={() => setActiveTab('dishes')}>
+            🍽️ Ma carte
+          </button>
+          <button className={`admin-tab ${activeTab === 'categories' ? 'active' : ''}`} onClick={() => setActiveTab('categories')}>
+            📂 Catégories
+          </button>
+          <button className={`admin-tab ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}>
+            ⚙️ Réglages
+          </button>
+        </div>
       </div>
 
       <div style={{ padding: '0 20px' }}>
+        {activeTab === 'dishes' && (
         <div className="card">
           <h3 style={{ fontFamily: 'Fraunces, serif', margin: '0 0 14px' }}>
             {loading ? 'Chargement…' : `${dishes.length} plat${dishes.length > 1 ? 's' : ''}`}
@@ -495,7 +516,9 @@ export default function AdminPage() {
             <button className="btn ghost" style={{ width: '100%', marginTop: 12 }} onClick={startAdd}>
               + Ajouter un plat
             </button>
-          )}{formOpen && (
+          )}
+
+          {formOpen && (
             <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px dashed var(--line)' }}>
               <h4 style={{ fontFamily: 'Fraunces, serif', fontSize: 15, margin: '0 0 10px' }}>
                 {editingId ? 'Modifier le plat' : 'Nouveau plat'}
@@ -558,7 +581,7 @@ export default function AdminPage() {
                   />
                 )}
                 <p style={{ fontSize: 11, color: 'var(--ink-dim)', marginTop: 6 }}>
-                  Pour créer une sous-catégorie, utilise la carte « Organisation des catégories » plus bas — elle apparaîtra ensuite ici.
+                  Pour créer une sous-catégorie, utilise l'onglet « Catégories » — elle apparaîtra ensuite ici.
                 </p>
               </div>
 
@@ -585,10 +608,7 @@ export default function AdminPage() {
                   onChange={(e) => updateForm({ allergensCustom: e.target.value })}
                   placeholder="Autre allergène (séparé par une virgule)"
                 />
-              </div>
-
-              <div className="field">
-                    <div className="field" style={{ borderTop: '1px dashed var(--line)', paddingTop: 14, marginTop: 4 }}>
+              </div><div className="field" style={{ borderTop: '1px dashed var(--line)', paddingTop: 14, marginTop: 4 }}>
                 <label style={{ marginBottom: 8 }}>Traductions (optionnel — pour les clients anglais/allemands)</label>
                 <p style={{ fontSize: 11, color: 'var(--ink-dim)', marginTop: -4, marginBottom: 8 }}>
                   Laisse vide pour garder le français par défaut dans cette langue.
@@ -600,6 +620,8 @@ export default function AdminPage() {
                   <input value={form.descriptionDe} onChange={(e) => updateForm({ descriptionDe: e.target.value })} placeholder="Beschreibung (allemand)" />
                 </div>
               </div>
+
+              <div className="field">
                 <label>Prix (en €)</label>
                 <input value={form.price} onChange={(e) => updateForm({ price: e.target.value })} placeholder="Ex. 14 ou 14,50" />
               </div>
@@ -613,8 +635,10 @@ export default function AdminPage() {
             </div>
           )}
         </div>
+        )}
 
-        <div className="card" style={{ marginTop: 16 }}>
+        {activeTab === 'categories' && (
+        <div className="card">
           <h3 style={{ fontFamily: 'Fraunces, serif', margin: '0 0 4px' }}>Organisation des catégories</h3>
           <p style={{ color: 'var(--ink-dim)', fontSize: 12.5, marginBottom: 14 }}>
             L'ordre choisi ici est celui qui s'affiche côté client. Ajoute des sous-catégories imbriquées avec « + Sous-catégorie », renomme pour fusionner un doublon.
@@ -624,7 +648,8 @@ export default function AdminPage() {
             parentId={null}
             byParent={byParent}
             dishCountByCat={dishCountByCat}
-            depth={0}translateTitles={settings.translate_titles}
+            depth={0}
+            translateTitles={settings.translate_titles}
             onSaveTranslation={setCategoryTranslation}
             renamingId={renamingId}
             renameValue={renameValue}
@@ -664,8 +689,10 @@ export default function AdminPage() {
             </button>
           )}
         </div>
+        )}
 
-        <div className="card" style={{ marginTop: 16 }}>
+        {activeTab === 'settings' && (
+        <div className="card">
           <h3 style={{ fontFamily: 'Fraunces, serif', margin: '0 0 4px' }}>Réglages</h3>
           <p style={{ color: 'var(--ink-dim)', fontSize: 12.5, marginBottom: 10 }}>
             Active ou désactive ces fonctionnalités selon tes besoins.
@@ -745,6 +772,7 @@ export default function AdminPage() {
             </button>
           </div>
         </div>
+        )}
       </div>
     </div>
   );
