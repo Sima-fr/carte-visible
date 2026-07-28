@@ -10,9 +10,10 @@ const ALLERGEN_LIST = [
   'Fruits à coque', 'Céleri', 'Moutarde', 'Sésame', 'Sulfites', 'Lupin', 'Mollusques',
 ];
 
-const emptyForm = {   name: '', price: '', categoryId: '', newCategory: '',   description: '', allergensChecked: [], allergensCustom: '',   nameEn: '', nameDe: '', descriptionEn: '', descriptionDe: '', };   name: '', price: '', categoryId: '', newCategory: '',   description: '', allergensChecked: [], allergensCustom: '',   nameEn: '', nameDe: '', descriptionEn: '', descriptionDe: '', };
+const emptyForm = {
   name: '', price: '', categoryId: '', newCategory: '',
   description: '', allergensChecked: [], allergensCustom: '',
+  nameEn: '', nameDe: '', descriptionEn: '', descriptionDe: '',
 };
 
 function buildTree(categories) {
