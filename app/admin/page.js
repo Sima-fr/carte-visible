@@ -294,7 +294,7 @@ export default function AdminPage() {
       name_en: form.nameEn.trim() || null,
       name_de: form.nameDe.trim() || null,
       description_en: form.descriptionEn.trim() || null,
-      description_de: form.descriptionDe.trim() || null,
+      description_de: form.descriptionDe.trim() || null,restaurant_id: restaurant.id,
     };
 
     let error;
