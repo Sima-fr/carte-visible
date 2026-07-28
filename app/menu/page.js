@@ -149,7 +149,7 @@ export default function MenuPage() {
   // ---------- Cart overlay ----------
   if (cartOpen) {
     return (
-      <div className="wrap" style={{ '--wine': settings.accent_color || '#7C2D2D' }}>
+      <div className="wrap" style={{ '--wine': settings.accent_color || '#7C2D2D', '--paper': settings.background_color || '#FAF3E6' }}>
         <div className="awning" />
         <div style={{ padding: '20px' }}>
           <button
@@ -196,7 +196,7 @@ export default function MenuPage() {
 
   // ---------- Main menu ----------
   return (
-    <div className="wrap" style={{ '--wine': settings.accent_color || '#7C2D2D' }}>
+    <div className="wrap" style={{ '--wine': settings.accent_color || '#7C2D2D', '--paper': settings.background_color || '#FAF3E6' }}>
       <div className="awning" />
       <div className="header">
         <div className="eyebrow">Le Petit Basilic</div>
