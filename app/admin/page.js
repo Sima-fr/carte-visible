@@ -272,8 +272,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="wrap">
-      <div className="awning" />
+<div className="wrap" style={{ '--wine': settings.accent_color || '#7C2D2D' }}>      <div className="awning" />
       <div className="header">
         <div className="eyebrow">Espace restaurateur</div>
         <h1 className="title">Ma carte</h1>
