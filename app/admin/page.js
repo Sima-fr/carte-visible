@@ -270,7 +270,7 @@ export default function AdminPage() {
       const maxPos = rootList.length ? Math.max(...rootList.map((c) => c.position)) : -1;
       const { data: newCat, error: catError } = await supabase
         .from('categories')
-        .insert({ name, position: maxPos + 1, parent_id: null })
+        .insert({ name, position: maxPos + 1, parent_id: null, restaurant_id: restaurant.id })
         .select()
         .single();
       if (catError) {
