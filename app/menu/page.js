@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { supabase } from '../../lib/supabaseClient';
 import { formatPrice } from '../../lib/format';
-import { t, dishName, dishDescription, translateAllergens, translateRecoLabel, categoryName } from '../../lib/i18n';
+import { t, dishName, dishDescription, translateAllergens, translateRecoLabel, categoryName, announcementTitle, announcementMessage } from '../../lib/i18n';
 
 function seasonGlyph() {
   const month = new Date().getMonth();
@@ -13,6 +13,7 @@ function seasonGlyph() {
   if (month <= 7) return '☀️';
   return '🍂';
 }
+
 function buildTree(categories) {
   const byParent = {};
   categories.forEach((c) => {
@@ -27,13 +28,15 @@ function buildTree(categories) {
 export default function MenuPage() {
   const [dishes, setDishes] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [settings, setSettings] = useState({ show_recommendations: false, accent_color: '#7C2D2D', background_color: '#FAF3E6', translate_titles: false, social_facebook: '', social_instagram: '', social_email: '', social_website: '', social_phone: '' });   const [socialOpen, setSocialOpen] = useState(false);
+  const [settings, setSettings] = useState({ show_recommendations: false, accent_color: '#7C2D2D', background_color: '#FAF3E6', translate_titles: false, social_facebook: '', social_instagram: '', social_email: '', social_website: '', social_phone: '' });
+  const [socialOpen, setSocialOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [openNode, setOpenNode] = useState({});
   const [cart, setCart] = useState({});
   const [cartOpen, setCartOpen] = useState(false);
-  const [lang, setLang] = useState('fr');const [announcements, setAnnouncements] = useState([]);
+  const [lang, setLang] = useState('fr');
+  const [announcements, setAnnouncements] = useState([]);
 
   useEffect(() => {
     async function loadAll() {
@@ -47,13 +50,14 @@ export default function MenuPage() {
         return;
       }
 
-const [dishesRes, categoriesRes, settingsRes, announcementsRes] = await Promise.all([
+      const [dishesRes, categoriesRes, settingsRes, announcementsRes] = await Promise.all([
         supabase.from('dishes').select('*').eq('restaurant_id', restaurant.id).order('created_at', { ascending: false }),
         supabase.from('categories').select('*').eq('restaurant_id', restaurant.id).order('position', { ascending: true }),
         supabase.from('settings').select('*').eq('restaurant_id', restaurant.id).single(),
         supabase.from('announcements').select('*').eq('restaurant_id', restaurant.id).eq('active', true).order('position', { ascending: true }),
       ]);
-if (dishesRes.data) setDishes(dishesRes.data);
+
+      if (dishesRes.data) setDishes(dishesRes.data);
       if (categoriesRes.data) setCategories(categoriesRes.data);
       if (settingsRes.data) setSettings(settingsRes.data);
       if (announcementsRes.data) setAnnouncements(announcementsRes.data);
@@ -82,6 +86,7 @@ if (dishesRes.data) setDishes(dishesRes.data);
     if (settings.social_phone) links.push({ key: 'phone', type: 'phone', href: `tel:${settings.social_phone}`, label: 'Téléphone' });
     return links;
   }, [settings]);
+
   function addToCart(dish) {
     setCart((c) => ({ ...c, [dish.id]: (c[dish.id] || 0) + 1 }));
   }
@@ -101,7 +106,6 @@ if (dishesRes.data) setDishes(dishesRes.data);
   const cartCount = cartItems.reduce((sum, i) => sum + i.qty, 0);
   const cartTotal = cartItems.reduce((sum, i) => sum + i.qty * (i.dish.price ? parseFloat(String(i.dish.price).replace(',', '.').match(/[\d.]+/)?.[0] || 0) : 0), 0);
 
-  // ---------- Photo detail overlay ----------
   if (selected) {
     return (
       <div className="wrap" style={{ '--wine': settings.accent_color || '#7C2D2D', '--paper': settings.background_color || '#FAF3E6' }}>
@@ -169,7 +173,6 @@ if (dishesRes.data) setDishes(dishesRes.data);
     );
   }
 
-  // ---------- Cart overlay ----------
   if (cartOpen) {
     return (
       <div className="wrap" style={{ '--wine': settings.accent_color || '#7C2D2D', '--paper': settings.background_color || '#FAF3E6' }}>
@@ -217,7 +220,6 @@ if (dishesRes.data) setDishes(dishesRes.data);
     );
   }
 
-  // ---------- Main menu ----------
   return (
     <div className="wrap" style={{ '--wine': settings.accent_color || '#7C2D2D', '--paper': settings.background_color || '#FAF3E6' }}>
       <div className="awning" />
@@ -243,15 +245,15 @@ if (dishesRes.data) setDishes(dishesRes.data);
           </div>
         </div>
         <h1 className="title">{t(lang, 'menuTitle')}</h1>
-<p className="sub">{t(lang, 'subheading')}</p>
+        <p className="sub">{t(lang, 'subheading')}</p>
       </div>
 
       {announcements.length > 0 && (
         <div style={{ padding: '0 20px 14px' }}>
           {announcements.map((a) => (
             <div key={a.id} className="announcement-card">
-              <div className="announcement-title">{a.title}</div>
-              <div className="announcement-message">{a.message}</div>
+              <div className="announcement-title">{announcementTitle(a, lang)}</div>
+              <div className="announcement-message">{announcementMessage(a, lang)}</div>
             </div>
           ))}
         </div>
@@ -278,7 +280,7 @@ if (dishesRes.data) setDishes(dishesRes.data);
         />
       </div>
 
-{cartCount > 0 && (
+      {cartCount > 0 && (
         <button className="cart-bar" onClick={() => setCartOpen(true)}>
           <span>{t(lang, 'dishesSelected', cartCount)}</span>
           <span>{cartTotal.toFixed(2).replace('.', ',')} €</span>
@@ -353,7 +355,7 @@ function CategoryLevel({ parentId, depth, byParent, dishesByCat, settings, dishe
 
 function SocialIcon({ type }) {
   const common = { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' };
-if (type === 'facebook') {
+  if (type === 'facebook') {
     return (
       <svg width="20" height="20" viewBox="0 0 320 512" fill="currentColor">
         <path d="M279.14 288l14.22-92.66h-88.91v-60.13c0-25.35 12.42-50.06 52.24-50.06h40.42V6.26S260.43 0 225.36 0c-73.22 0-121.08 44.38-121.08 124.72v70.62H22.89V288h81.39v224h100.17V288z" />
@@ -394,6 +396,7 @@ if (type === 'facebook') {
   }
   return null;
 }
+
 function DishRow({ dish, dishes, settings, lang, onView, onAdd }) {
   const [justAdded, setJustAdded] = useState(0);
   const reco = settings?.show_recommendations && dish.recommended_dish_id
