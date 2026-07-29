@@ -868,6 +868,73 @@ async function setSocialField(field, value) {
         </div>
         )}
 
+{activeTab === 'announcements' && (
+        <div className="card">
+          {announcements.length === 0 && !annFormOpen && (
+            <p style={{ color: 'var(--ink-dim)', fontSize: 13.5, marginBottom: 14 }}>
+              Aucune annonce pour l'instant. Utilise-les pour signaler une offre du jour, une soirée spéciale, une fermeture exceptionnelle…
+            </p>
+          )}
+
+          {announcements.map((a, i) => (
+            <div key={a.id} style={{ padding: '12px 4px', borderBottom: '1px solid var(--line)' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14 }}>{a.title}</div>
+                  <div style={{ color: 'var(--ink-dim)', fontSize: 12.5, marginTop: 2 }}>{a.message}</div>
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
+                  <button
+                    onClick={() => toggleAnnouncementActive(a)}
+                    className="btn ghost"
+                    style={{
+                      fontSize: 11, padding: '6px 10px', borderRadius: 999,
+                      color: a.active ? 'var(--herb)' : 'var(--ink-dim)',
+                      borderColor: a.active ? 'rgba(76,107,65,0.35)' : 'var(--line)',
+                    }}
+                  >
+                    {a.active ? 'Visible' : 'Masquée'}
+                  </button>
+                  <div style={{ display: 'flex', border: '1px solid var(--line)', borderRadius: 8, overflow: 'hidden' }}>
+                    <button onClick={() => moveAnnouncement(i, -1)} disabled={i === 0} style={{ border: 'none', background: 'var(--paper)', color: 'var(--ink-dim)', padding: '6px 9px', fontSize: 12, cursor: 'pointer' }}>▲</button>
+                    <button onClick={() => moveAnnouncement(i, 1)} disabled={i === announcements.length - 1} style={{ border: 'none', borderLeft: '1px solid var(--line)', background: 'var(--paper)', color: 'var(--ink-dim)', padding: '6px 9px', fontSize: 12, cursor: 'pointer' }}>▼</button>
+                  </div>
+                  <button onClick={() => startEditAnnouncement(a)} className="btn ghost" style={{ padding: '6px 9px', fontSize: 13 }} title="Modifier">✎</button>
+                  <button onClick={() => deleteAnnouncement(a)} style={{ background: 'none', border: 'none', color: 'var(--ink-dim)', cursor: 'pointer', fontSize: 15, padding: '6px 6px' }} title="Supprimer">✕</button>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {!annFormOpen && (
+            <button className="btn ghost" style={{ width: '100%', marginTop: 12 }} onClick={startAddAnnouncement}>
+              + Nouvelle annonce
+            </button>
+          )}
+
+          {annFormOpen && (
+            <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px dashed var(--line)' }}>
+              <h4 style={{ fontFamily: 'Fraunces, serif', fontSize: 15, margin: '0 0 10px' }}>
+                {annEditingId ? "Modifier l'annonce" : 'Nouvelle annonce'}
+              </h4>
+              <div className="field">
+                <label>Titre</label>
+                <input value={annTitle} onChange={(e) => setAnnTitle(e.target.value)} placeholder="Ex. Soirée tapas ce vendredi 🎉" />
+              </div>
+              <div className="field">
+                <label>Message</label>
+                <input value={annMessage} onChange={(e) => setAnnMessage(e.target.value)} placeholder="Ex. Dès 19h, formule spéciale à 25€. Réservation conseillée." />
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn" style={{ flex: 1 }} onClick={saveAnnouncement}>
+                  {annEditingId ? 'Enregistrer' : 'Ajouter'}
+                </button>
+                <button className="btn ghost" onClick={cancelAnnouncementForm}>Annuler</button>
+              </div>
+            </div>
+          )}
+        </div>
+        )}
 {activeTab === 'settings' && (
         <div className="card">
           <div className="settings-section">
