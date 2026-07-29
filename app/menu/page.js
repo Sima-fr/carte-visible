@@ -6,6 +6,13 @@ import { supabase } from '../../lib/supabaseClient';
 import { formatPrice } from '../../lib/format';
 import { t, dishName, dishDescription, translateAllergens, translateRecoLabel, categoryName } from '../../lib/i18n';
 
+function seasonGlyph() {
+  const month = new Date().getMonth();
+  if (month <= 1 || month === 11) return '❄️';
+  if (month <= 4) return '🌸';
+  if (month <= 7) return '☀️';
+  return '🍂';
+}
 function buildTree(categories) {
   const byParent = {};
   categories.forEach((c) => {
@@ -206,7 +213,7 @@ export default function MenuPage() {
       <div className="awning" />
       <div className="header">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div className="eyebrow">Le Petit Basilic</div>
+          <div className="eyebrow">Le Petit Basilic <span className="season-glyph">{seasonGlyph()}</span></div>
           <div style={{ display: 'flex', gap: 4 }}>
             {['fr', 'en', 'de'].map((code) => (
               <button
@@ -307,9 +314,15 @@ function CategoryLevel({ parentId, depth, byParent, dishesByCat, settings, dishe
 }
 
 function DishRow({ dish, dishes, settings, lang, onView, onAdd }) {
+  const [justAdded, setJustAdded] = useState(0);
   const reco = settings?.show_recommendations && dish.recommended_dish_id
     ? dishes.find((d) => d.id === dish.recommended_dish_id)
     : null;
+
+  function handleAdd() {
+    onAdd();
+    setJustAdded((n) => n + 1);
+  }
   return (
     <div className={`dish-row ${!dish.available ? 'unavailable' : ''}`}>
       <div
@@ -336,7 +349,12 @@ function DishRow({ dish, dishes, settings, lang, onView, onAdd }) {
         <div style={{ color: 'var(--wine)', fontSize: 13, fontWeight: 600, marginTop: 2 }}>{formatPrice(dish.price)}</div>
       </div>
       {dish.available && (
-        <button onClick={onAdd} className="plus-btn" aria-label="Ajouter à la commande">+</button>
+        <div style={{ position: 'relative' }}>
+          {justAdded > 0 && (
+            <span key={justAdded} className="plus-one-stamp">+1</span>
+          )}
+          <button onClick={handleAdd} className="plus-btn" aria-label="Ajouter à la commande">+</button>
+        </div>
       )}
     </div>
   );
