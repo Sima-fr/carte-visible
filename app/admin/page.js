@@ -51,12 +51,13 @@ function categoryPath(categories, id) {
 export default function AdminPage() {
   const [dishes, setDishes] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [settings, setSettings] = useState({ show_recommendations: false, track_stats: false, accent_color: '#7C2D2D', background_color: '#FAF3E6', translate_titles: false });
+  const [settings, setSettings] = useState({ show_recommendations: false, track_stats: false, accent_color: '#7C2D2D', background_color: '#FAF3E6', translate_titles: false, social_facebook: '', social_instagram: '', social_email: '', social_website: '', social_phone: '' });
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('dishes');
   const [editingId, setEditingId] = useState(null);
   const [openDishCat, setOpenDishCat] = useState({});
+  const [openRecoFor, setOpenRecoFor] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -66,11 +67,20 @@ export default function AdminPage() {
   const [renameValue, setRenameValue] = useState('');
   const [addingChildFor, setAddingChildFor] = useState(null);
   const [autoTranslating, setAutoTranslating] = useState(false);
-  const [newChildName, setNewChildName] = useState('');const [translateOpenId, setTranslateOpenId] = useState(null);const [menuOpenId, setMenuOpenId] = useState(null);const [announcements, setAnnouncements] = useState([]);
+  const [newChildName, setNewChildName] = useState('');
+  const [translateOpenId, setTranslateOpenId] = useState(null);
+  const [menuOpenId, setMenuOpenId] = useState(null);
+  const [announcements, setAnnouncements] = useState([]);
   const [annFormOpen, setAnnFormOpen] = useState(false);
   const [annEditingId, setAnnEditingId] = useState(null);
   const [annTitle, setAnnTitle] = useState('');
-  const [annMessage, setAnnMessage] = useState('');const [session, setSession] = useState(null);
+  const [annMessage, setAnnMessage] = useState('');
+  const [annTitleEn, setAnnTitleEn] = useState('');
+  const [annTitleDe, setAnnTitleDe] = useState('');
+  const [annMessageEn, setAnnMessageEn] = useState('');
+  const [annMessageDe, setAnnMessageDe] = useState('');
+
+  const [session, setSession] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [restaurant, setRestaurant] = useState(null);
   const [loginEmail, setLoginEmail] = useState('');
@@ -151,7 +161,7 @@ export default function AdminPage() {
     if (!error && data) setSettings(data);
   }
 
-useEffect(() => {
+  useEffect(() => {
     if (!restaurant) return;
     loadDishes();
     loadCategories();
@@ -173,6 +183,7 @@ useEffect(() => {
     setAnnEditingId(null);
     setAnnTitle('');
     setAnnMessage('');
+    setAnnTitleEn(''); setAnnTitleDe(''); setAnnMessageEn(''); setAnnMessageDe('');
     setAnnFormOpen(true);
   }
 
@@ -180,6 +191,8 @@ useEffect(() => {
     setAnnEditingId(a.id);
     setAnnTitle(a.title);
     setAnnMessage(a.message);
+    setAnnTitleEn(a.title_en || ''); setAnnTitleDe(a.title_de || '');
+    setAnnMessageEn(a.message_en || ''); setAnnMessageDe(a.message_de || '');
     setAnnFormOpen(true);
   }
 
@@ -188,17 +201,21 @@ useEffect(() => {
     setAnnEditingId(null);
     setAnnTitle('');
     setAnnMessage('');
+    setAnnTitleEn(''); setAnnTitleDe(''); setAnnMessageEn(''); setAnnMessageDe('');
   }
 
   async function saveAnnouncement() {
     if (!annTitle.trim() || !annMessage.trim()) return;
+    const payload = {
+      title: annTitle.trim(), message: annMessage.trim(),
+      title_en: annTitleEn.trim() || null, title_de: annTitleDe.trim() || null,
+      message_en: annMessageEn.trim() || null, message_de: annMessageDe.trim() || null,
+    };
     if (annEditingId) {
-      await supabase.from('announcements').update({ title: annTitle.trim(), message: annMessage.trim() }).eq('id', annEditingId);
+      await supabase.from('announcements').update(payload).eq('id', annEditingId);
     } else {
       const maxPos = announcements.length ? Math.max(...announcements.map((a) => a.position)) : -1;
-      await supabase.from('announcements').insert({
-        title: annTitle.trim(), message: annMessage.trim(), restaurant_id: restaurant.id, position: maxPos + 1,
-      });
+      await supabase.from('announcements').insert({ ...payload, restaurant_id: restaurant.id, position: maxPos + 1 });
     }
     cancelAnnouncementForm();
     loadAnnouncements();
@@ -364,7 +381,8 @@ useEffect(() => {
       name_en: form.nameEn.trim() || null,
       name_de: form.nameDe.trim() || null,
       description_en: form.descriptionEn.trim() || null,
-      description_de: form.descriptionDe.trim() || null,restaurant_id: restaurant.id,
+      description_de: form.descriptionDe.trim() || null,
+      restaurant_id: restaurant.id,
     };
 
     let error;
@@ -409,13 +427,13 @@ useEffect(() => {
     const siblings = byParent[node.parent_id || 'root'];
     const idx = siblings.findIndex((c) => c.id === node.id);
     const other = idx + dir;
-    if (other < 0 || other >= siblings.length) return;
-    const a = siblings[idx];
-    const b = siblings[other];
-    await supabase.from('categories').update({ position: b.position }).eq('id', a.id);
-    await supabase.from('categories').update({ position: a.position }).eq('id', b.id);
-    loadCategories();
-  }    async function renameCategory(node, newName) {     const trimmed = newName.trim();     if (!trimmed || trimmed === node.name) {       setRenamingId(null);       return;     }     const siblings = byParent[node.parent_id || 'root'];
+    if (other < 0 || other >= siblings.length) return;async function renameCategory(node, newName) {
+    const trimmed = newName.trim();
+    if (!trimmed || trimmed === node.name) {
+      setRenamingId(null);
+      return;
+    }
+    const siblings = byParent[node.parent_id || 'root'];
     const target = siblings.find((c) => c.name === trimmed && c.id !== node.id);
     if (target) {
       await supabase.from('dishes').update({ category_id: target.id }).eq('category_id', node.id);
@@ -466,11 +484,13 @@ useEffect(() => {
     setSettings((s) => ({ ...s, background_color: color }));
     await supabase.from('settings').update({ background_color: color }).eq('restaurant_id', restaurant.id);
   }
-async function setSocialField(field, value) {
+
+  async function setSocialField(field, value) {
     setSettings((s) => ({ ...s, [field]: value }));
     const { error } = await supabase.from('settings').update({ [field]: value || null }).eq('restaurant_id', restaurant.id);
     if (error) alert("Erreur d'enregistrement : " + error.message);
   }
+
   async function setCategoryTranslation(catId, field, value) {
     await supabase.from('categories').update({ [field]: value || null }).eq('id', catId);
     loadCategories();
@@ -499,8 +519,19 @@ async function setSocialField(field, value) {
           await supabase.from('dishes').update(patch).eq('id', d.id);
         }
       }
+      for (const a of announcements) {
+        const patch = {};
+        if (!a.title_en) patch.title_en = await translateText(a.title, 'en');
+        if (!a.title_de) patch.title_de = await translateText(a.title, 'de');
+        if (!a.message_en) patch.message_en = await translateText(a.message, 'en');
+        if (!a.message_de) patch.message_de = await translateText(a.message, 'de');
+        if (Object.keys(patch).length) {
+          await supabase.from('announcements').update(patch).eq('id', a.id);
+        }
+      }
       await loadCategories();
       await loadDishes();
+      await loadAnnouncements();
     } finally {
       setAutoTranslating(false);
     }
@@ -550,7 +581,7 @@ async function setSocialField(field, value) {
             Déconnexion
           </button>
         </div>
-<h1 className="title">
+        <h1 className="title">
           {activeTab === 'dishes' && 'Ma carte'}
           {activeTab === 'categories' && 'Mes catégories'}
           {activeTab === 'announcements' && 'Annonces'}
@@ -605,7 +636,7 @@ async function setSocialField(field, value) {
                     <div
                       style={{
                         display: 'flex', alignItems: 'center', gap: 12,
-                        padding: '10px 4px', borderBottom: settings.show_recommendations ? 'none' : '1px solid var(--line)',
+                        padding: '10px 4px', borderBottom: openRecoFor === d.id ? 'none' : '1px solid var(--line)',
                       }}
                     >
                       <div
@@ -634,6 +665,20 @@ async function setSocialField(field, value) {
                       >
                         {d.available ? 'Dispo' : 'Épuisé'}
                       </button>
+                      {settings.show_recommendations && (
+                        <button
+                          onClick={() => setOpenRecoFor(openRecoFor === d.id ? null : d.id)}
+                          className="btn ghost"
+                          title="Recommandation"
+                          style={{
+                            fontSize: 13, padding: '6px 9px', borderRadius: 999,
+                            color: d.recommended_dish_id ? 'var(--brass)' : 'var(--ink-dim)',
+                            borderColor: d.recommended_dish_id ? 'rgba(181,135,42,0.4)' : 'var(--line)',
+                          }}
+                        >
+                          🍷
+                        </button>
+                      )}
                       <button
                         onClick={() => deleteDish(d)}
                         style={{ background: 'none', border: 'none', color: 'var(--ink-dim)', cursor: 'pointer', fontSize: 16 }}
@@ -641,7 +686,7 @@ async function setSocialField(field, value) {
                         ✕
                       </button>
                     </div>
-                    {settings.show_recommendations && (
+                    {settings.show_recommendations && openRecoFor === d.id && (
                       <div style={{ padding: '0 4px 10px 66px', borderBottom: '1px solid var(--line)' }}>
                         <label style={{ fontSize: 10.5, color: 'var(--ink-dim)', display: 'block', marginBottom: 3 }}>
                           Recommander avec « {d.name} »
@@ -754,7 +799,7 @@ async function setSocialField(field, value) {
                   />
                 )}
                 <p style={{ fontSize: 11, color: 'var(--ink-dim)', marginTop: 6 }}>
-                  Pour créer une sous-catégorie, utilise l'onglet « Catégories » — elle apparaîtra ensuite ici.
+                  Pour créer une sous-catégorie, utilise la carte « Organisation des catégories » plus bas — elle apparaîtra ensuite ici.
                 </p>
               </div>
 
@@ -781,7 +826,9 @@ async function setSocialField(field, value) {
                   onChange={(e) => updateForm({ allergensCustom: e.target.value })}
                   placeholder="Autre allergène (séparé par une virgule)"
                 />
-              </div><div className="field" style={{ borderTop: '1px dashed var(--line)', paddingTop: 14, marginTop: 4 }}>
+              </div>
+
+              <div className="field" style={{ borderTop: '1px dashed var(--line)', paddingTop: 14, marginTop: 4 }}>
                 <label style={{ marginBottom: 8 }}>Traductions (optionnel — pour les clients anglais/allemands)</label>
                 <p style={{ fontSize: 11, color: 'var(--ink-dim)', marginTop: -4, marginBottom: 8 }}>
                   Laisse vide pour garder le français par défaut dans cette langue.
@@ -800,13 +847,273 @@ async function setSocialField(field, value) {
               </div>
 
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn" style={{ flex: 1 }} disabled={saving} onClick={saveDish}>
-                  {saving ? 'Enregistrement…' : editingId ? 'Enregistrer les modifications' : 'Ajouter à la carte'}
+                <button className="btn" style={{ flex: 1 }} disabled={saving} onClick={saveDish}>async function renameCategory(node, newName) {
+    const trimmed = newName.trim();
+    if (!trimmed || trimmed === node.name) {
+      setRenamingId(null);
+      return;
+    }
+    const siblings = byParent[node.parent_id || 'root'];
+    const target = siblings.find((c) => c.name === trimmed && c.id !== node.id);
+    if (target) {
+      await supabase.from('dishes').update({ category_id: target.id }).eq('category_id', node.id);
+      await supabase.from('categories').update({ parent_id: target.id }).eq('parent_id', node.id);
+      await supabase.from('categories').delete().eq('id', node.id);
+    } else {
+      await supabase.from('categories').update({ name: trimmed }).eq('id', node.id);
+    }
+    setRenamingId(null);
+    loadCategories();
+    loadDishes();
+  }
+
+  async function deleteCategoryNode(node) {
+    const hasChildren = (byParent[node.id] || []).length > 0;
+    const dishCount = dishCountByCat[node.id] || 0;
+    if (hasChildren || dishCount > 0) {
+      alert(`« ${node.name} » contient encore ${dishCount} plat${dishCount > 1 ? 's' : ''} et/ou des sous-catégories. Vide-la d'abord (renomme pour fusionner, ou déplace/supprime ses plats).`);
+      return;
+    }
+    await supabase.from('categories').delete().eq('id', node.id);
+    loadCategories();
+  }
+
+  async function addCategory(parentId, name) {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const siblings = byParent[parentId || 'root'] || [];
+    const maxPos = siblings.length ? Math.max(...siblings.map((c) => c.position)) : -1;
+    await supabase.from('categories').insert({ name: trimmed, position: maxPos + 1, parent_id: parentId || null, restaurant_id: restaurant.id });
+    setAddingChildFor(null);
+    setNewChildName('');
+    loadCategories();
+  }
+
+  async function toggleSetting(key) {
+    const next = { ...settings, [key]: !settings[key] };
+    setSettings(next);
+    await supabase.from('settings').update({ [key]: next[key] }).eq('restaurant_id', restaurant.id);
+  }
+
+  async function setAccentColor(color) {
+    setSettings((s) => ({ ...s, accent_color: color }));
+    await supabase.from('settings').update({ accent_color: color }).eq('restaurant_id', restaurant.id);
+  }
+
+  async function setBackgroundColor(color) {
+    setSettings((s) => ({ ...s, background_color: color }));
+    await supabase.from('settings').update({ background_color: color }).eq('restaurant_id', restaurant.id);
+  }
+
+  async function setSocialField(field, value) {
+    setSettings((s) => ({ ...s, [field]: value }));
+    const { error } = await supabase.from('settings').update({ [field]: value || null }).eq('restaurant_id', restaurant.id);
+    if (error) alert("Erreur d'enregistrement : " + error.message);
+  }
+
+  async function setCategoryTranslation(catId, field, value) {
+    await supabase.from('categories').update({ [field]: value || null }).eq('id', catId);
+    loadCategories();
+  }
+
+  async function autoTranslateAll() {
+    setAutoTranslating(true);
+    try {
+      for (const cat of categories) {
+        const patch = {};
+        if (!cat.name_en) patch.name_en = await translateText(cat.name, 'en');
+        if (!cat.name_de) patch.name_de = await translateText(cat.name, 'de');
+        if (Object.keys(patch).length) {
+          await supabase.from('categories').update(patch).eq('id', cat.id);
+        }
+      }
+      for (const d of dishes) {
+        const patch = {};
+        if (!d.name_en) patch.name_en = await translateText(d.name, 'en');
+        if (!d.name_de) patch.name_de = await translateText(d.name, 'de');
+        if (d.description) {
+          if (!d.description_en) patch.description_en = await translateText(d.description, 'en');
+          if (!d.description_de) patch.description_de = await translateText(d.description, 'de');
+        }
+        if (Object.keys(patch).length) {
+          await supabase.from('dishes').update(patch).eq('id', d.id);
+        }
+      }
+      for (const a of announcements) {
+        const patch = {};
+        if (!a.title_en) patch.title_en = await translateText(a.title, 'en');
+        if (!a.title_de) patch.title_de = await translateText(a.title, 'de');
+        if (!a.message_en) patch.message_en = await translateText(a.message, 'en');
+        if (!a.message_de) patch.message_de = await translateText(a.message, 'de');
+        if (Object.keys(patch).length) {
+          await supabase.from('announcements').update(patch).eq('id', a.id);
+        }
+      }
+      await loadCategories();
+      await loadDishes();
+      await loadAnnouncements();
+    } finally {
+      setAutoTranslating(false);
+    }
+  }
+
+  if (authLoading) {
+    return (
+      <div className="wrap">
+        <div className="awning" />
+        <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink-dim)' }}>Chargement…</div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return (
+      <div className="wrap">
+        <div className="awning" />
+        <div style={{ padding: '40px 20px', maxWidth: 360, margin: '0 auto' }}>
+          <div className="eyebrow">Espace restaurateur</div>
+          <h1 className="title" style={{ fontSize: 26 }}>Connexion</h1>
+          <p className="sub" style={{ marginBottom: 20 }}>Connecte-toi avec l'email et le mot de passe de ton restaurant.</p>
+          <div className="field">
+            <label>Email</label>
+            <input value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} placeholder="ton@email.com" />
+          </div>
+          <div className="field">
+            <label>Mot de passe</label>
+            <input type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} placeholder="••••••••" />
+          </div>
+          {loginError && <p style={{ color: 'var(--brick)', fontSize: 12.5, marginBottom: 10 }}>{loginError}</p>}
+          <button className="btn" style={{ width: '100%' }} disabled={loggingIn} onClick={handleLogin}>
+            {loggingIn ? 'Connexion…' : 'Se connecter'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="wrap" style={{ '--wine': settings.accent_color || '#7C2D2D', '--paper': settings.background_color || '#FAF3E6' }}>
+      <div className="awning" />
+      <div className="header">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div className="eyebrow">Espace restaurateur{restaurant ? ` — ${restaurant.name}` : ''}</div>
+          <button onClick={handleLogout} className="btn ghost" style={{ padding: '6px 12px', fontSize: 11 }}>
+            Déconnexion
+          </button>
+        </div>
+        <h1 className="title">
+          {activeTab === 'dishes' && 'Ma carte'}
+          {activeTab === 'categories' && 'Mes catégories'}
+          {activeTab === 'announcements' && 'Annonces'}
+          {activeTab === 'settings' && 'Réglages'}
+        </h1>
+        <p className="sub">
+          {activeTab === 'dishes' && "Ajoutez, mettez à jour ou retirez des plats."}
+          {activeTab === 'categories' && "Organisez, réordonnez et traduisez vos catégories et sous-catégories."}
+          {activeTab === 'announcements' && "Informe tes clients d'une offre du jour, d'une soirée spéciale ou d'une info importante."}
+          {activeTab === 'settings' && "Options, couleurs et traductions de votre carte."}
+          {' '}Les changements sont visibles côté client immédiatement.{' '}
+          <a href="/menu" style={{ color: 'var(--wine)', fontWeight: 600 }}>Voir la carte client →</a>
+        </p>
+        <div className="admin-tabs">
+          <button className={`admin-tab ${activeTab === 'dishes' ? 'active' : ''}`} onClick={() => setActiveTab('dishes')}>
+            🍽️ Ma carte
+          </button>
+          <button className={`admin-tab ${activeTab === 'categories' ? 'active' : ''}`} onClick={() => setActiveTab('categories')}>
+            📂 Catégories
+          </button>
+          <button className={`admin-tab ${activeTab === 'announcements' ? 'active' : ''}`} onClick={() => setActiveTab('announcements')}>
+            📢 Annonces
+          </button>
+          <button className={`admin-tab ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}>
+            ⚙️ Réglages
+          </button>
+        </div>
+      </div>
+
+      <div style={{ padding: '0 20px' }}>
+        {activeTab === 'announcements' && (
+        <div className="card">
+          {announcements.length === 0 && !annFormOpen && (
+            <p style={{ color: 'var(--ink-dim)', fontSize: 13.5, marginBottom: 14 }}>
+              Aucune annonce pour l'instant. Utilise-les pour signaler une offre du jour, une soirée spéciale, une fermeture exceptionnelle…
+            </p>
+          )}
+
+          {announcements.map((a, i) => (
+            <div key={a.id} style={{ padding: '12px 4px', borderBottom: '1px solid var(--line)' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 14 }}>{a.title}</div>
+                  <div style={{ color: 'var(--ink-dim)', fontSize: 12.5, marginTop: 2 }}>{a.message}</div>
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
+                  <button
+                    onClick={() => toggleAnnouncementActive(a)}
+                    className="btn ghost"
+                    style={{
+                      fontSize: 11, padding: '6px 10px', borderRadius: 999,
+                      color: a.active ? 'var(--herb)' : 'var(--ink-dim)',
+                      borderColor: a.active ? 'rgba(76,107,65,0.35)' : 'var(--line)',
+                    }}
+                  >
+                    {a.active ? 'Visible' : 'Masquée'}
+                  </button>
+                  <div style={{ display: 'flex', border: '1px solid var(--line)', borderRadius: 8, overflow: 'hidden' }}>
+                    <button onClick={() => moveAnnouncement(i, -1)} disabled={i === 0} style={{ border: 'none', background: 'var(--paper)', color: 'var(--ink-dim)', padding: '6px 9px', fontSize: 12, cursor: 'pointer' }}>▲</button>
+                    <button onClick={() => moveAnnouncement(i, 1)} disabled={i === announcements.length - 1} style={{ border: 'none', borderLeft: '1px solid var(--line)', background: 'var(--paper)', color: 'var(--ink-dim)', padding: '6px 9px', fontSize: 12, cursor: 'pointer' }}>▼</button>
+                  </div>
+                  <button onClick={() => startEditAnnouncement(a)} className="btn ghost" style={{ padding: '6px 9px', fontSize: 13 }} title="Modifier">✎</button>
+                  <button onClick={() => deleteAnnouncement(a)} style={{ background: 'none', border: 'none', color: 'var(--ink-dim)', cursor: 'pointer', fontSize: 15, padding: '6px 6px' }} title="Supprimer">✕</button>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {!annFormOpen && (
+            <button className="btn ghost" style={{ width: '100%', marginTop: 12 }} onClick={startAddAnnouncement}>
+              + Nouvelle annonce
+            </button>
+          )}
+
+          {annFormOpen && (
+            <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px dashed var(--line)' }}>
+              <h4 style={{ fontFamily: 'Fraunces, serif', fontSize: 15, margin: '0 0 10px' }}>
+                {annEditingId ? "Modifier l'annonce" : 'Nouvelle annonce'}
+              </h4>
+              <div className="field">
+                <label>Titre</label>
+                <input value={annTitle} onChange={(e) => setAnnTitle(e.target.value)} placeholder="Ex. Soirée tapas ce vendredi 🎉" />
+              </div>
+              <div className="field">
+                <label>Message</label>
+                <input value={annMessage} onChange={(e) => setAnnMessage(e.target.value)} placeholder="Ex. Dès 19h, formule spéciale à 25€. Réservation conseillée." />
+              </div>
+              <div className="field" style={{ borderTop: '1px dashed var(--line)', paddingTop: 14 }}>
+                <label style={{ marginBottom: 8 }}>Traductions (optionnel)</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <input value={annTitleEn} onChange={(e) => setAnnTitleEn(e.target.value)} placeholder="Titre (anglais)" />
+                  <input value={annTitleDe} onChange={(e) => setAnnTitleDe(e.target.value)} placeholder="Titel (allemand)" />
+                  <input value={annMessageEn} onChange={(e) => setAnnMessageEn(e.target.value)} placeholder="Message (anglais)" />
+                  <input value={annMessageDe} onChange={(e) => setAnnMessageDe(e.target.value)} placeholder="Nachricht (allemand)" />
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="btn" style={{ flex: 1 }} onClick={saveAnnouncement}>
+                  {annEditingId ? 'Enregistrer' : 'Ajouter'}
                 </button>
-                <button className="btn ghost" onClick={cancelForm}>Annuler</button>
+                <button className="btn ghost" onClick={cancelAnnouncementForm}>Annuler</button>
               </div>
             </div>
           )}
+        </div>
+        )}
+
+        {activeTab === 'dishes' && (
+        <div className="card">
+          <h3 style={{ fontFamily: 'Fraunces, serif', margin: '0 0 14px' }}>
+            {loading ? 'Chargement…' : `${dishes.length} plat${dishes.length > 1 ? 's' : ''}`}
+          </h3>
         </div>
         )}
 
@@ -868,74 +1175,7 @@ async function setSocialField(field, value) {
         </div>
         )}
 
-{activeTab === 'announcements' && (
-        <div className="card">
-          {announcements.length === 0 && !annFormOpen && (
-            <p style={{ color: 'var(--ink-dim)', fontSize: 13.5, marginBottom: 14 }}>
-              Aucune annonce pour l'instant. Utilise-les pour signaler une offre du jour, une soirée spéciale, une fermeture exceptionnelle…
-            </p>
-          )}
-
-          {announcements.map((a, i) => (
-            <div key={a.id} style={{ padding: '12px 4px', borderBottom: '1px solid var(--line)' }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: 14 }}>{a.title}</div>
-                  <div style={{ color: 'var(--ink-dim)', fontSize: 12.5, marginTop: 2 }}>{a.message}</div>
-                </div>
-                <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
-                  <button
-                    onClick={() => toggleAnnouncementActive(a)}
-                    className="btn ghost"
-                    style={{
-                      fontSize: 11, padding: '6px 10px', borderRadius: 999,
-                      color: a.active ? 'var(--herb)' : 'var(--ink-dim)',
-                      borderColor: a.active ? 'rgba(76,107,65,0.35)' : 'var(--line)',
-                    }}
-                  >
-                    {a.active ? 'Visible' : 'Masquée'}
-                  </button>
-                  <div style={{ display: 'flex', border: '1px solid var(--line)', borderRadius: 8, overflow: 'hidden' }}>
-                    <button onClick={() => moveAnnouncement(i, -1)} disabled={i === 0} style={{ border: 'none', background: 'var(--paper)', color: 'var(--ink-dim)', padding: '6px 9px', fontSize: 12, cursor: 'pointer' }}>▲</button>
-                    <button onClick={() => moveAnnouncement(i, 1)} disabled={i === announcements.length - 1} style={{ border: 'none', borderLeft: '1px solid var(--line)', background: 'var(--paper)', color: 'var(--ink-dim)', padding: '6px 9px', fontSize: 12, cursor: 'pointer' }}>▼</button>
-                  </div>
-                  <button onClick={() => startEditAnnouncement(a)} className="btn ghost" style={{ padding: '6px 9px', fontSize: 13 }} title="Modifier">✎</button>
-                  <button onClick={() => deleteAnnouncement(a)} style={{ background: 'none', border: 'none', color: 'var(--ink-dim)', cursor: 'pointer', fontSize: 15, padding: '6px 6px' }} title="Supprimer">✕</button>
-                </div>
-              </div>
-            </div>
-          ))}
-
-          {!annFormOpen && (
-            <button className="btn ghost" style={{ width: '100%', marginTop: 12 }} onClick={startAddAnnouncement}>
-              + Nouvelle annonce
-            </button>
-          )}
-
-          {annFormOpen && (
-            <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px dashed var(--line)' }}>
-              <h4 style={{ fontFamily: 'Fraunces, serif', fontSize: 15, margin: '0 0 10px' }}>
-                {annEditingId ? "Modifier l'annonce" : 'Nouvelle annonce'}
-              </h4>
-              <div className="field">
-                <label>Titre</label>
-                <input value={annTitle} onChange={(e) => setAnnTitle(e.target.value)} placeholder="Ex. Soirée tapas ce vendredi 🎉" />
-              </div>
-              <div className="field">
-                <label>Message</label>
-                <input value={annMessage} onChange={(e) => setAnnMessage(e.target.value)} placeholder="Ex. Dès 19h, formule spéciale à 25€. Réservation conseillée." />
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn" style={{ flex: 1 }} onClick={saveAnnouncement}>
-                  {annEditingId ? 'Enregistrer' : 'Ajouter'}
-                </button>
-                <button className="btn ghost" onClick={cancelAnnouncementForm}>Annuler</button>
-              </div>
-            </div>
-          )}
-        </div>
-        )}
-{activeTab === 'settings' && (
+        {activeTab === 'settings' && (
         <div className="card">
           <div className="settings-section">
             <div className="settings-section-head">
@@ -956,7 +1196,6 @@ async function setSocialField(field, value) {
             </div>
             <div className="toggle-row" style={{ borderBottom: 'none' }}>
               <div>
-                <div className="toggle-label">Couleur de fond</div>
                 <div className="toggle-desc">Change la couleur d'arrière-plan de la carte.</div>
               </div>
               <input
@@ -1094,7 +1333,8 @@ function CategoryTree(props) {
     renamingId, renameValue, setRenamingId, setRenameValue,
     onRename, onMove, onDelete,
     addingChildFor, setAddingChildFor, newChildName, setNewChildName, onAddChild,
-    translateTitles, onSaveTranslation, translateOpenId, setTranslateOpenId,     menuOpenId, setMenuOpenId,
+    translateTitles, onSaveTranslation, translateOpenId, setTranslateOpenId,
+    menuOpenId, setMenuOpenId,
   } = props;
   const key = parentId || 'root';
   const nodes = byParent[key] || [];
@@ -1102,7 +1342,15 @@ function CategoryTree(props) {
   return (
     <div>
       {nodes.map((node, i) => (
-        <div key={node.id} style={{ marginLeft: depth * 18 }}>
+        <div
+          key={node.id}
+          style={{
+            marginLeft: depth * 18,
+            marginBottom: depth === 0 ? 4 : 0,
+            borderLeft: depth > 0 ? '2px solid var(--line)' : 'none',
+            paddingLeft: depth > 0 ? 10 : 0,
+          }}
+        >
           <div
             style={{
               display: 'flex', alignItems: 'center', gap: 8,
@@ -1120,12 +1368,12 @@ function CategoryTree(props) {
                 <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => onRename(node, renameValue)}>OK</button>
                 <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => setRenamingId(null)}>Annuler</button>
               </>
-          ) : (
+            ) : (
               <>
                 <div style={{ flex: 1, fontWeight: 600, fontSize: 14, minWidth: 0 }}>
                   {node.name} <span style={{ color: 'var(--ink-dim)', fontWeight: 400, fontSize: 12 }}>({dishCountByCat[node.id] || 0})</span>
                 </div>
-<div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
                   <div style={{ display: 'flex', border: '1px solid var(--line)', borderRadius: 8, overflow: 'hidden' }}>
                     <button onClick={() => onMove(node, -1)} disabled={i === 0} style={{ border: 'none', background: 'var(--paper)', color: 'var(--ink-dim)', padding: '6px 9px', fontSize: 12, cursor: 'pointer' }}>▲</button>
                     <button onClick={() => onMove(node, 1)} disabled={i === nodes.length - 1} style={{ border: 'none', borderLeft: '1px solid var(--line)', background: 'var(--paper)', color: 'var(--ink-dim)', padding: '6px 9px', fontSize: 12, cursor: 'pointer' }}>▼</button>
