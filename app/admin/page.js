@@ -66,7 +66,11 @@ export default function AdminPage() {
   const [renameValue, setRenameValue] = useState('');
   const [addingChildFor, setAddingChildFor] = useState(null);
   const [autoTranslating, setAutoTranslating] = useState(false);
-  const [newChildName, setNewChildName] = useState('');const [translateOpenId, setTranslateOpenId] = useState(null);const [menuOpenId, setMenuOpenId] = useState(null);const [session, setSession] = useState(null);
+  const [newChildName, setNewChildName] = useState('');const [translateOpenId, setTranslateOpenId] = useState(null);const [menuOpenId, setMenuOpenId] = useState(null);const [announcements, setAnnouncements] = useState([]);
+  const [annFormOpen, setAnnFormOpen] = useState(false);
+  const [annEditingId, setAnnEditingId] = useState(null);
+  const [annTitle, setAnnTitle] = useState('');
+  const [annMessage, setAnnMessage] = useState('');const [session, setSession] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [restaurant, setRestaurant] = useState(null);
   const [loginEmail, setLoginEmail] = useState('');
@@ -147,12 +151,78 @@ export default function AdminPage() {
     if (!error && data) setSettings(data);
   }
 
-  useEffect(() => {
+useEffect(() => {
     if (!restaurant) return;
     loadDishes();
     loadCategories();
     loadSettings();
+    loadAnnouncements();
   }, [restaurant]);
+
+  async function loadAnnouncements() {
+    if (!restaurant) return;
+    const { data } = await supabase
+      .from('announcements')
+      .select('*')
+      .eq('restaurant_id', restaurant.id)
+      .order('position', { ascending: true });
+    if (data) setAnnouncements(data);
+  }
+
+  function startAddAnnouncement() {
+    setAnnEditingId(null);
+    setAnnTitle('');
+    setAnnMessage('');
+    setAnnFormOpen(true);
+  }
+
+  function startEditAnnouncement(a) {
+    setAnnEditingId(a.id);
+    setAnnTitle(a.title);
+    setAnnMessage(a.message);
+    setAnnFormOpen(true);
+  }
+
+  function cancelAnnouncementForm() {
+    setAnnFormOpen(false);
+    setAnnEditingId(null);
+    setAnnTitle('');
+    setAnnMessage('');
+  }
+
+  async function saveAnnouncement() {
+    if (!annTitle.trim() || !annMessage.trim()) return;
+    if (annEditingId) {
+      await supabase.from('announcements').update({ title: annTitle.trim(), message: annMessage.trim() }).eq('id', annEditingId);
+    } else {
+      const maxPos = announcements.length ? Math.max(...announcements.map((a) => a.position)) : -1;
+      await supabase.from('announcements').insert({
+        title: annTitle.trim(), message: annMessage.trim(), restaurant_id: restaurant.id, position: maxPos + 1,
+      });
+    }
+    cancelAnnouncementForm();
+    loadAnnouncements();
+  }
+
+  async function toggleAnnouncementActive(a) {
+    await supabase.from('announcements').update({ active: !a.active }).eq('id', a.id);
+    loadAnnouncements();
+  }
+
+  async function deleteAnnouncement(a) {
+    await supabase.from('announcements').delete().eq('id', a.id);
+    loadAnnouncements();
+  }
+
+  async function moveAnnouncement(index, dir) {
+    const other = index + dir;
+    if (other < 0 || other >= announcements.length) return;
+    const a = announcements[index];
+    const b = announcements[other];
+    await supabase.from('announcements').update({ position: b.position }).eq('id', a.id);
+    await supabase.from('announcements').update({ position: a.position }).eq('id', b.id);
+    loadAnnouncements();
+  }
 
   const byParent = useMemo(() => buildTree(categories), [categories]);
   const flatOptions = useMemo(() => flattenForSelect(byParent, 'root', 0, []), [byParent]);
