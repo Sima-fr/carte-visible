@@ -74,11 +74,11 @@ export default function MenuPage() {
 
   const socialLinks = useMemo(() => {
     const links = [];
-    if (settings.social_facebook) links.push({ key: 'facebook', icon: '📘', href: settings.social_facebook, label: 'Facebook' });
-    if (settings.social_instagram) links.push({ key: 'instagram', icon: '📸', href: settings.social_instagram, label: 'Instagram' });
-    if (settings.social_website) links.push({ key: 'website', icon: '🌐', href: settings.social_website, label: 'Site web' });
-    if (settings.social_email) links.push({ key: 'email', icon: '✉️', href: `mailto:${settings.social_email}`, label: 'Email' });
-    if (settings.social_phone) links.push({ key: 'phone', icon: '📞', href: `tel:${settings.social_phone}`, label: 'Téléphone' });
+    if (settings.social_facebook) links.push({ key: 'facebook', type: 'facebook', href: settings.social_facebook, label: 'Facebook' });
+    if (settings.social_instagram) links.push({ key: 'instagram', type: 'instagram', href: settings.social_instagram, label: 'Instagram' });
+    if (settings.social_website) links.push({ key: 'website', type: 'website', href: settings.social_website, label: 'Site web' });
+    if (settings.social_email) links.push({ key: 'email', type: 'email', href: `mailto:${settings.social_email}`, label: 'Email' });
+    if (settings.social_phone) links.push({ key: 'phone', type: 'phone', href: `tel:${settings.social_phone}`, label: 'Téléphone' });
     return links;
   }, [settings]);
   function addToCart(dish) {
@@ -279,7 +279,7 @@ export default function MenuPage() {
             <div className="social-icons">
               {socialLinks.map((link) => (
                 <a key={link.key} href={link.href} target="_blank" rel="noopener noreferrer" className="social-icon" title={link.label}>
-                  {link.icon}
+                  <SocialIcon type={link.type} />
                 </a>
               ))}
             </div>
@@ -339,6 +339,50 @@ function CategoryLevel({ parentId, depth, byParent, dishesByCat, settings, dishe
   );
 }
 
+function SocialIcon({ type }) {
+  const common = { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' };
+  if (type === 'facebook') {
+    return (
+      <svg {...common}>
+        <path d="M15 8.5h-2a1.5 1.5 0 0 0-1.5 1.5v2H15l-.4 3h-2.1v7" fill="none" />
+        <path d="M9 13.5h6" />
+      </svg>
+    );
+  }
+  if (type === 'instagram') {
+    return (
+      <svg {...common}>
+        <rect x="3.5" y="3.5" width="17" height="17" rx="5" />
+        <circle cx="12" cy="12" r="4" />
+        <circle cx="17" cy="7" r="0.6" fill="currentColor" stroke="none" />
+      </svg>
+    );
+  }
+  if (type === 'website') {
+    return (
+      <svg {...common}>
+        <circle cx="12" cy="12" r="8.5" />
+        <path d="M3.5 12h17M12 3.5c2.2 2.3 3.5 5.4 3.5 8.5s-1.3 6.2-3.5 8.5c-2.2-2.3-3.5-5.4-3.5-8.5S9.8 5.8 12 3.5z" />
+      </svg>
+    );
+  }
+  if (type === 'email') {
+    return (
+      <svg {...common}>
+        <rect x="3" y="5.5" width="18" height="13" rx="2.5" />
+        <path d="M4 7l8 6 8-6" />
+      </svg>
+    );
+  }
+  if (type === 'phone') {
+    return (
+      <svg {...common}>
+        <path d="M6 3.5h3l1.5 4-2 1.5a11 11 0 0 0 5 5l1.5-2 4 1.5v3a2 2 0 0 1-2.2 2C10.6 18.6 5.4 13.4 4 7.7A2 2 0 0 1 6 3.5z" />
+      </svg>
+    );
+  }
+  return null;
+}
 function DishRow({ dish, dishes, settings, lang, onView, onAdd }) {
   const [justAdded, setJustAdded] = useState(0);
   const reco = settings?.show_recommendations && dish.recommended_dish_id
