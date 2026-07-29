@@ -789,78 +789,93 @@ export default function AdminPage() {
         </div>
         )}
 
-        {activeTab === 'settings' && (
+{activeTab === 'settings' && (
         <div className="card">
-          <h3 style={{ fontFamily: 'Fraunces, serif', margin: '0 0 4px' }}>Réglages</h3>
-          <p style={{ color: 'var(--ink-dim)', fontSize: 12.5, marginBottom: 10 }}>
-            Active ou désactive ces fonctionnalités selon tes besoins.
-          </p>
-          <div className="toggle-row">
-            <div>
-              <div className="toggle-label">Recommandations de boissons</div>
-              <div className="toggle-desc">Suggère une boisson conseillée quand le client regarde un plat.</div>
+          <div className="settings-section">
+            <div className="settings-section-head">
+              <div className="settings-section-icon">🎨</div>
+              <div className="settings-section-title">Apparence</div>
             </div>
-            <button
-              className={`toggle-btn ${settings.show_recommendations ? 'on' : ''}`}
-              onClick={() => toggleSetting('show_recommendations')}
-            >
-              {settings.show_recommendations ? 'Activé' : 'Désactivé'}
-            </button>
+            <div className="toggle-row">
+              <div>
+                <div className="toggle-label">Couleur de la carte</div>
+                <div className="toggle-desc">Change la couleur d'accent vue par tes clients sur /menu (et ici).</div>
+              </div>
+              <input
+                type="color"
+                value={settings.accent_color || '#7C2D2D'}
+                onChange={(e) => setAccentColor(e.target.value)}
+                style={{ width: 44, height: 32, border: '1px solid var(--line)', borderRadius: 8, padding: 2, background: 'none', cursor: 'pointer', flexShrink: 0, marginLeft: 12 }}
+              />
+            </div>
+            <div className="toggle-row" style={{ borderBottom: 'none' }}>
+              <div>
+                <div className="toggle-label">Couleur de fond</div>
+                <div className="toggle-desc">Change la couleur d'arrière-plan de la carte.</div>
+              </div>
+              <input
+                type="color"
+                value={settings.background_color || '#FAF3E6'}
+                onChange={(e) => setBackgroundColor(e.target.value)}
+                style={{ width: 44, height: 32, border: '1px solid var(--line)', borderRadius: 8, padding: 2, background: 'none', cursor: 'pointer', flexShrink: 0, marginLeft: 12 }}
+              />
+            </div>
           </div>
-          <div className="toggle-row">
-            <div>
-              <div className="toggle-label">Statistiques</div>
-              <div className="toggle-desc">Suivi des plats commandés par jour et par service.</div>
+
+          <div className="settings-section" style={{ borderTop: '1px solid var(--line)', paddingTop: 22 }}>
+            <div className="settings-section-head">
+              <div className="settings-section-icon">✨</div>
+              <div className="settings-section-title">Fonctionnalités</div>
             </div>
-            <button
-              className={`toggle-btn ${settings.track_stats ? 'on' : ''}`}
-              onClick={() => toggleSetting('track_stats')}
-            >
-              {settings.track_stats ? 'Activé' : 'Désactivé'}
-            </button>
+            <div className="toggle-row">
+              <div>
+                <div className="toggle-label">Recommandations de boissons</div>
+                <div className="toggle-desc">Suggère une boisson conseillée quand le client regarde un plat.</div>
+              </div>
+              <button
+                className={`toggle-btn ${settings.show_recommendations ? 'on' : ''}`}
+                onClick={() => toggleSetting('show_recommendations')}
+              >
+                {settings.show_recommendations ? 'Activé' : 'Désactivé'}
+              </button>
+            </div>
+            <div className="toggle-row" style={{ borderBottom: 'none' }}>
+              <div>
+                <div className="toggle-label">Statistiques</div>
+                <div className="toggle-desc">Suivi des plats commandés par jour et par service.</div>
+              </div>
+              <button
+                className={`toggle-btn ${settings.track_stats ? 'on' : ''}`}
+                onClick={() => toggleSetting('track_stats')}
+              >
+                {settings.track_stats ? 'Activé' : 'Désactivé'}
+              </button>
+            </div>
           </div>
-          <div className="toggle-row" style={{ borderBottom: 'none' }}>
-            <div>
-              <div className="toggle-label">Couleur de la carte</div>
-              <div className="toggle-desc">Change la couleur d'accent vue par tes clients sur /menu (et ici).</div>
+
+          <div className="settings-section" style={{ borderTop: '1px solid var(--line)', paddingTop: 22 }}>
+            <div className="settings-section-head">
+              <div className="settings-section-icon">🌍</div>
+              <div className="settings-section-title">Langues</div>
             </div>
-            <input
-              type="color"
-              value={settings.accent_color || '#7C2D2D'}
-              onChange={(e) => setAccentColor(e.target.value)}
-              style={{ width: 44, height: 32, border: '1px solid var(--line)', borderRadius: 8, padding: 2, background: 'none', cursor: 'pointer', flexShrink: 0, marginLeft: 12 }}
-            />
-          </div>
-          <div className="toggle-row">
-            <div>
-              <div className="toggle-label">Couleur de fond</div>
-              <div className="toggle-desc">Change la couleur d'arrière-plan de la carte.</div>
+            <div className="toggle-row">
+              <div>
+                <div className="toggle-label">Traduire aussi les titres</div>
+                <div className="toggle-desc">Si activé, les noms des plats et des catégories se traduisent aussi (sinon seulement descriptions/allergènes/textes fixes).</div>
+              </div>
+              <button
+                className={`toggle-btn ${settings.translate_titles ? 'on' : ''}`}
+                onClick={() => toggleSetting('translate_titles')}
+              >
+                {settings.translate_titles ? 'Activé' : 'Désactivé'}
+              </button>
             </div>
-            <input
-              type="color"
-              value={settings.background_color || '#FAF3E6'}
-              onChange={(e) => setBackgroundColor(e.target.value)}
-              style={{ width: 44, height: 32, border: '1px solid var(--line)', borderRadius: 8, padding: 2, background: 'none', cursor: 'pointer', flexShrink: 0, marginLeft: 12 }}
-            />
-          </div>
-          <div className="toggle-row">
-            <div>
-              <div className="toggle-label">Traduire aussi les titres</div>
-              <div className="toggle-desc">Si activé, les noms des plats et des catégories se traduisent aussi (sinon seulement descriptions/allergènes/textes fixes).</div>
-            </div>
-            <button
-              className={`toggle-btn ${settings.translate_titles ? 'on' : ''}`}
-              onClick={() => toggleSetting('translate_titles')}
-            >
-              {settings.translate_titles ? 'Activé' : 'Désactivé'}
-            </button>
-          </div>
-          <div className="toggle-row" style={{ borderBottom: 'none' }}>
-            <div>
-              <div className="toggle-label">Traduction automatique</div>
-              <div className="toggle-desc">Remplit automatiquement les traductions manquantes (plats et catégories) via un service gratuit. Reclique après avoir ajouté de nouveaux plats.</div>
-            </div>
-<button
+            <div className="toggle-row" style={{ borderBottom: 'none' }}>
+              <div>
+                <div className="toggle-label">Traduction automatique</div>
+                <div className="toggle-desc">Remplit automatiquement les traductions manquantes (plats et catégories) via un service gratuit. Reclique après avoir ajouté de nouveaux plats.</div>
+              </div>
+              <button
                 className="btn ghost"
                 disabled={autoTranslating}
                 onClick={autoTranslateAll}
@@ -922,6 +937,10 @@ export default function AdminPage() {
           </div>
         </div>
         )}
+      </div>
+    </div>
+  );
+}
       </div>
     </div>
   );
