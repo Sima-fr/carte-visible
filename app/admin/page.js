@@ -860,14 +860,65 @@ export default function AdminPage() {
               <div className="toggle-label">Traduction automatique</div>
               <div className="toggle-desc">Remplit automatiquement les traductions manquantes (plats et catégories) via un service gratuit. Reclique après avoir ajouté de nouveaux plats.</div>
             </div>
-            <button
-              className="btn ghost"
-              disabled={autoTranslating}
-              onClick={autoTranslateAll}
-              style={{ marginLeft: 12, whiteSpace: 'nowrap' }}
-            >
-              {autoTranslating ? 'Traduction…' : 'Traduire automatiquement'}
-            </button>
+<button
+                className="btn ghost"
+                disabled={autoTranslating}
+                onClick={autoTranslateAll}
+                style={{ marginLeft: 12, whiteSpace: 'nowrap' }}
+              >
+                {autoTranslating ? 'Traduction…' : 'Traduire automatiquement'}
+              </button>
+            </div>
+          </div>
+
+          <div className="settings-section" style={{ borderTop: '1px solid var(--line)', paddingTop: 22 }}>
+            <div className="settings-section-head">
+              <div className="settings-section-icon">🔗</div>
+              <div className="settings-section-title">Réseaux & contact</div>
+            </div>
+            <p style={{ fontSize: 12, color: 'var(--ink-dim)', marginTop: -6, marginBottom: 12 }}>
+              Laisse vide ce que tu ne veux pas afficher. Une petite barre apparaîtra côté client uniquement pour les liens renseignés.
+            </p>
+            <div className="field">
+              <label>Facebook</label>
+              <input
+                defaultValue={settings.social_facebook || ''}
+                onBlur={(e) => setSocialField('social_facebook', e.target.value.trim())}
+                placeholder="https://facebook.com/tonrestaurant"
+              />
+            </div>
+            <div className="field">
+              <label>Instagram</label>
+              <input
+                defaultValue={settings.social_instagram || ''}
+                onBlur={(e) => setSocialField('social_instagram', e.target.value.trim())}
+                placeholder="https://instagram.com/tonrestaurant"
+              />
+            </div>
+            <div className="field">
+              <label>Email de contact</label>
+              <input
+                defaultValue={settings.social_email || ''}
+                onBlur={(e) => setSocialField('social_email', e.target.value.trim())}
+                placeholder="contact@tonrestaurant.fr"
+              />
+            </div>
+            <div className="field">
+              <label>Site web</label>
+              <input
+                defaultValue={settings.social_website || ''}
+                onBlur={(e) => setSocialField('social_website', e.target.value.trim())}
+                placeholder="https://tonrestaurant.fr"
+              />
+            </div>
+            <div className="field" style={{ marginBottom: 0 }}>
+              <label>Téléphone</label>
+              <input
+                defaultValue={settings.social_phone || ''}
+                onBlur={(e) => setSocialField('social_phone', e.target.value.trim())}
+                placeholder="0123456789"
+              />
+            </div>
           </div>
         </div>
         )}
