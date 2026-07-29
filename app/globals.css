@@ -240,3 +240,19 @@ a { color: inherit; }
   font-family: 'Fraunces, serif';
   font-weight: 700; font-size: 15px;
 }
+/* ---- Menu déroulant d'actions (catégories) ---- */
+.cat-menu {
+  position: absolute; top: 100%; right: 0; margin-top: 6px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(43,33,24,0.15);
+  min-width: 200px; z-index: 20; overflow: hidden;
+  animation: bodyEnter 0.15s ease both;
+}
+.cat-menu button {
+  display: block; width: 100%; text-align: left;
+  background: none; border: none; cursor: pointer;
+  padding: 10px 14px; font-size: 13px; color: var(--ink);
+  font-family: 'Work Sans', sans-serif;
+}
+.cat-menu button:hover { background: var(--paper); }
+.cat-menu button.danger { color: var(--brick); }
