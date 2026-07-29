@@ -33,7 +33,7 @@ export default function MenuPage() {
   const [openNode, setOpenNode] = useState({});
   const [cart, setCart] = useState({});
   const [cartOpen, setCartOpen] = useState(false);
-  const [lang, setLang] = useState('fr');
+  const [lang, setLang] = useState('fr');const [announcements, setAnnouncements] = useState([]);
 
   useEffect(() => {
     async function loadAll() {
@@ -47,15 +47,16 @@ export default function MenuPage() {
         return;
       }
 
-      const [dishesRes, categoriesRes, settingsRes] = await Promise.all([
+const [dishesRes, categoriesRes, settingsRes, announcementsRes] = await Promise.all([
         supabase.from('dishes').select('*').eq('restaurant_id', restaurant.id).order('created_at', { ascending: false }),
         supabase.from('categories').select('*').eq('restaurant_id', restaurant.id).order('position', { ascending: true }),
         supabase.from('settings').select('*').eq('restaurant_id', restaurant.id).single(),
+        supabase.from('announcements').select('*').eq('restaurant_id', restaurant.id).eq('active', true).order('position', { ascending: true }),
       ]);
-
-      if (dishesRes.data) setDishes(dishesRes.data);
+if (dishesRes.data) setDishes(dishesRes.data);
       if (categoriesRes.data) setCategories(categoriesRes.data);
       if (settingsRes.data) setSettings(settingsRes.data);
+      if (announcementsRes.data) setAnnouncements(announcementsRes.data);
       setLoading(false);
     }
     loadAll();
@@ -242,8 +243,19 @@ export default function MenuPage() {
           </div>
         </div>
         <h1 className="title">{t(lang, 'menuTitle')}</h1>
-        <p className="sub">{t(lang, 'subheading')}</p>
+<p className="sub">{t(lang, 'subheading')}</p>
       </div>
+
+      {announcements.length > 0 && (
+        <div style={{ padding: '0 20px 14px' }}>
+          {announcements.map((a) => (
+            <div key={a.id} className="announcement-card">
+              <div className="announcement-title">{a.title}</div>
+              <div className="announcement-message">{a.message}</div>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div style={{ padding: '0 20px 90px' }}>
         {loading && <p style={{ color: 'var(--ink-dim)' }}>{t(lang, 'loading')}</p>}
