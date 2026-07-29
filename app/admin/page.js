@@ -66,7 +66,7 @@ export default function AdminPage() {
   const [renameValue, setRenameValue] = useState('');
   const [addingChildFor, setAddingChildFor] = useState(null);
   const [autoTranslating, setAutoTranslating] = useState(false);
-  const [newChildName, setNewChildName] = useState('');const [translateOpenId, setTranslateOpenId] = useState(null);const [session, setSession] = useState(null);
+  const [newChildName, setNewChildName] = useState('');const [translateOpenId, setTranslateOpenId] = useState(null);const [menuOpenId, setMenuOpenId] = useState(null);const [session, setSession] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [restaurant, setRestaurant] = useState(null);
   const [loginEmail, setLoginEmail] = useState('');
@@ -747,6 +747,8 @@ export default function AdminPage() {
             onSaveTranslation={setCategoryTranslation}
             translateOpenId={translateOpenId}
             setTranslateOpenId={setTranslateOpenId}
+            menuOpenId={menuOpenId}
+            setMenuOpenId={setMenuOpenId}
             renamingId={renamingId}
             renameValue={renameValue}
             setRenamingId={setRenamingId}
@@ -880,7 +882,7 @@ function CategoryTree(props) {
     renamingId, renameValue, setRenamingId, setRenameValue,
     onRename, onMove, onDelete,
     addingChildFor, setAddingChildFor, newChildName, setNewChildName, onAddChild,
-    translateTitles, onSaveTranslation, translateOpenId, setTranslateOpenId,
+    translateTitles, onSaveTranslation, translateOpenId, setTranslateOpenId,     menuOpenId, setMenuOpenId,
   } = props;
   const key = parentId || 'root';
   const nodes = byParent[key] || [];
@@ -911,48 +913,47 @@ function CategoryTree(props) {
                 <div style={{ flex: 1, fontWeight: 600, fontSize: 14, minWidth: 0 }}>
                   {node.name} <span style={{ color: 'var(--ink-dim)', fontWeight: 400, fontSize: 12 }}>({dishCountByCat[node.id] || 0})</span>
                 </div>
-                <div style={{ display: 'flex', gap: 3, flexShrink: 0 }}>
-                  {translateTitles && (
-                    <button
-                      onClick={() => setTranslateOpenId(translateOpenId === node.id ? null : node.id)}
-                      className="btn ghost"
-                      title="Traductions"
-                      style={{
-                        padding: '5px 9px', fontSize: 13,
-                        color: translateOpenId === node.id ? 'var(--wine)' : 'var(--ink-dim)',
-                        borderColor: translateOpenId === node.id ? 'var(--wine)' : 'var(--line)',
-                      }}
-                    >
-                      🌐
-                    </button>
-                  )}
-                  <button
-                    onClick={() => { setAddingChildFor(node.id); setNewChildName(''); }}
-                    className="btn ghost"
-                    title="Ajouter une sous-catégorie"
-                    style={{ padding: '5px 9px', fontSize: 13 }}
-                  >
-                    ➕
-                  </button>
-                  <button
-                    onClick={() => { setRenamingId(node.id); setRenameValue(node.name); }}
-                    className="btn ghost"
-                    title="Renommer"
-                    style={{ padding: '5px 9px', fontSize: 13 }}
-                  >
-                    ✎
-                  </button>
+<div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
                   <div style={{ display: 'flex', border: '1px solid var(--line)', borderRadius: 8, overflow: 'hidden' }}>
-                    <button onClick={() => onMove(node, -1)} disabled={i === 0} style={{ border: 'none', background: 'var(--paper)', color: 'var(--ink-dim)', padding: '5px 8px', fontSize: 12, cursor: 'pointer' }}>▲</button>
-                    <button onClick={() => onMove(node, 1)} disabled={i === nodes.length - 1} style={{ border: 'none', borderLeft: '1px solid var(--line)', background: 'var(--paper)', color: 'var(--ink-dim)', padding: '5px 8px', fontSize: 12, cursor: 'pointer' }}>▼</button>
+                    <button onClick={() => onMove(node, -1)} disabled={i === 0} style={{ border: 'none', background: 'var(--paper)', color: 'var(--ink-dim)', padding: '6px 9px', fontSize: 12, cursor: 'pointer' }}>▲</button>
+                    <button onClick={() => onMove(node, 1)} disabled={i === nodes.length - 1} style={{ border: 'none', borderLeft: '1px solid var(--line)', background: 'var(--paper)', color: 'var(--ink-dim)', padding: '6px 9px', fontSize: 12, cursor: 'pointer' }}>▼</button>
                   </div>
-                  <button
-                    onClick={() => onDelete(node)}
-                    style={{ background: 'none', border: 'none', color: 'var(--ink-dim)', cursor: 'pointer', fontSize: 15, padding: '5px 6px' }}
-                    title="Supprimer (vide uniquement)"
-                  >
-                    ✕
-                  </button>
+                  <div style={{ position: 'relative' }}>
+                    <button
+                      onClick={() => setMenuOpenId(menuOpenId === node.id ? null : node.id)}
+                      className="btn ghost"
+                      style={{ padding: '6px 11px', fontSize: 16, lineHeight: 1 }}
+                    >
+                      ⋯
+                    </button>
+                    {menuOpenId === node.id && (
+                      <div className="cat-menu">
+                        {translateTitles && (
+                          <button
+                            onClick={() => { setTranslateOpenId(translateOpenId === node.id ? null : node.id); setMenuOpenId(null); }}
+                          >
+                            🌐 Traductions
+                          </button>
+                        )}
+                        <button
+                          onClick={() => { setAddingChildFor(node.id); setNewChildName(''); setMenuOpenId(null); }}
+                        >
+                          ➕ Ajouter une sous-catégorie
+                        </button>
+                        <button
+                          onClick={() => { setRenamingId(node.id); setRenameValue(node.name); setMenuOpenId(null); }}
+                        >
+                          ✎ Renommer
+                        </button>
+                        <button
+                          className="danger"
+                          onClick={() => { onDelete(node); setMenuOpenId(null); }}
+                        >
+                          ✕ Supprimer
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </>
             )}
