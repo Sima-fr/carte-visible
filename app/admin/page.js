@@ -550,14 +550,16 @@ async function setSocialField(field, value) {
             Déconnexion
           </button>
         </div>
-        <h1 className="title">
+<h1 className="title">
           {activeTab === 'dishes' && 'Ma carte'}
           {activeTab === 'categories' && 'Mes catégories'}
+          {activeTab === 'announcements' && 'Annonces'}
           {activeTab === 'settings' && 'Réglages'}
         </h1>
         <p className="sub">
           {activeTab === 'dishes' && "Ajoutez, mettez à jour ou retirez des plats."}
           {activeTab === 'categories' && "Organisez, réordonnez et traduisez vos catégories et sous-catégories."}
+          {activeTab === 'announcements' && "Informe tes clients d'une offre du jour, d'une soirée spéciale ou d'une info importante."}
           {activeTab === 'settings' && "Options, couleurs et traductions de votre carte."}
           {' '}Les changements sont visibles côté client immédiatement.{' '}
           <a href="/menu" style={{ color: 'var(--wine)', fontWeight: 600 }}>Voir la carte client →</a>
@@ -568,6 +570,9 @@ async function setSocialField(field, value) {
           </button>
           <button className={`admin-tab ${activeTab === 'categories' ? 'active' : ''}`} onClick={() => setActiveTab('categories')}>
             📂 Catégories
+          </button>
+          <button className={`admin-tab ${activeTab === 'announcements' ? 'active' : ''}`} onClick={() => setActiveTab('announcements')}>
+            📢 Annonces
           </button>
           <button className={`admin-tab ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}>
             ⚙️ Réglages
