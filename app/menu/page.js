@@ -27,7 +27,7 @@ function buildTree(categories) {
 export default function MenuPage() {
   const [dishes, setDishes] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [settings, setSettings] = useState({ show_recommendations: false, accent_color: '#7C2D2D', background_color: '#FAF3E6', translate_titles: false });
+  const [settings, setSettings] = useState({ show_recommendations: false, accent_color: '#7C2D2D', background_color: '#FAF3E6', translate_titles: false, social_facebook: '', social_instagram: '', social_email: '', social_website: '', social_phone: '' });   const [socialOpen, setSocialOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [openNode, setOpenNode] = useState({});
@@ -72,6 +72,15 @@ export default function MenuPage() {
     return map;
   }, [dishes]);
 
+  const socialLinks = useMemo(() => {
+    const links = [];
+    if (settings.social_facebook) links.push({ key: 'facebook', icon: '📘', href: settings.social_facebook, label: 'Facebook' });
+    if (settings.social_instagram) links.push({ key: 'instagram', icon: '📸', href: settings.social_instagram, label: 'Instagram' });
+    if (settings.social_website) links.push({ key: 'website', icon: '🌐', href: settings.social_website, label: 'Site web' });
+    if (settings.social_email) links.push({ key: 'email', icon: '✉️', href: `mailto:${settings.social_email}`, label: 'Email' });
+    if (settings.social_phone) links.push({ key: 'phone', icon: '📞', href: `tel:${settings.social_phone}`, label: 'Téléphone' });
+    return links;
+  }, [settings]);
   function addToCart(dish) {
     setCart((c) => ({ ...c, [dish.id]: (c[dish.id] || 0) + 1 }));
   }
@@ -257,11 +266,28 @@ export default function MenuPage() {
         />
       </div>
 
-      {cartCount > 0 && (
+{cartCount > 0 && (
         <button className="cart-bar" onClick={() => setCartOpen(true)}>
           <span>{t(lang, 'dishesSelected', cartCount)}</span>
           <span>{cartTotal.toFixed(2).replace('.', ',')} €</span>
         </button>
+      )}
+
+      {socialLinks.length > 0 && (
+        <div className="social-widget" style={{ bottom: cartCount > 0 ? 92 : 20 }}>
+          {socialOpen && (
+            <div className="social-icons">
+              {socialLinks.map((link) => (
+                <a key={link.key} href={link.href} target="_blank" rel="noopener noreferrer" className="social-icon" title={link.label}>
+                  {link.icon}
+                </a>
+              ))}
+            </div>
+          )}
+          <button className="social-toggle" onClick={() => setSocialOpen((o) => !o)}>
+            {socialOpen ? '︿' : '﹀'}
+          </button>
+        </div>
       )}
     </div>
   );
