@@ -396,7 +396,11 @@ export default function AdminPage() {
     setSettings((s) => ({ ...s, background_color: color }));
     await supabase.from('settings').update({ background_color: color }).eq('restaurant_id', restaurant.id);
   }
-
+async function setSocialField(field, value) {
+    setSettings((s) => ({ ...s, [field]: value }));
+    const { error } = await supabase.from('settings').update({ [field]: value || null }).eq('restaurant_id', restaurant.id);
+    if (error) alert("Erreur d'enregistrement : " + error.message);
+  }
   async function setCategoryTranslation(catId, field, value) {
     await supabase.from('categories').update({ [field]: value || null }).eq('id', catId);
     loadCategories();
