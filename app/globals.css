@@ -154,3 +154,50 @@ a { color: inherit; }
   font-family: 'Big Shoulders Text', sans-serif; text-transform: uppercase; letter-spacing: 0.04em;
   font-size: 10.5px; color: var(--wine); font-weight: 700; margin-bottom: 2px;
 }
+/* ---- Micro-interactions : carte qui se soulève ---- */
+.dish-row {
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.dish-row:active {
+  transform: translateY(-2px) rotate(-0.3deg);
+}
+.cv-gallery-item, .card {
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+/* ---- Bouton + : pression + tampon "+1" ---- */
+.plus-btn {
+  transition: transform 0.12s ease;
+}
+.plus-btn:active {
+  transform: scale(0.85);
+}
+.plus-one-stamp {
+  position: absolute;
+  right: 6px;
+  top: -6px;
+  font-family: 'Big Shoulders Text', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--wine);
+  pointer-events: none;
+  animation: stampFloat 0.7s ease forwards;
+}
+@keyframes stampFloat {
+  0% { opacity: 0; transform: translateY(4px) rotate(-8deg) scale(0.8); }
+  25% { opacity: 1; transform: translateY(-4px) rotate(4deg) scale(1.08); }
+  70% { opacity: 1; transform: translateY(-16px) rotate(-2deg) scale(1); }
+  100% { opacity: 0; transform: translateY(-26px) rotate(0deg) scale(0.95); }
+}
+
+/* ---- Chevron : petit rebond plutôt qu'une rotation plate ---- */
+.chevron {
+  transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ---- Touche saisonnière ---- */
+.season-glyph {
+  font-size: 15px;
+  margin-left: 6px;
+  display: inline-block;
+}
