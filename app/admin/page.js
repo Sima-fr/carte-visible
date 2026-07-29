@@ -66,7 +66,7 @@ export default function AdminPage() {
   const [renameValue, setRenameValue] = useState('');
   const [addingChildFor, setAddingChildFor] = useState(null);
   const [autoTranslating, setAutoTranslating] = useState(false);
-  const [newChildName, setNewChildName] = useState('');const [session, setSession] = useState(null);
+  const [newChildName, setNewChildName] = useState('');const [translateOpenId, setTranslateOpenId] = useState(null);const [session, setSession] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [restaurant, setRestaurant] = useState(null);
   const [loginEmail, setLoginEmail] = useState('');
@@ -745,6 +745,8 @@ export default function AdminPage() {
             depth={0}
             translateTitles={settings.translate_titles}
             onSaveTranslation={setCategoryTranslation}
+            translateOpenId={translateOpenId}
+            setTranslateOpenId={setTranslateOpenId}
             renamingId={renamingId}
             renameValue={renameValue}
             setRenamingId={setRenamingId}
@@ -878,7 +880,7 @@ function CategoryTree(props) {
     renamingId, renameValue, setRenamingId, setRenameValue,
     onRename, onMove, onDelete,
     addingChildFor, setAddingChildFor, newChildName, setNewChildName, onAddChild,
-    translateTitles, onSaveTranslation,
+    translateTitles, onSaveTranslation, translateOpenId, setTranslateOpenId,
   } = props;
   const key = parentId || 'root';
   const nodes = byParent[key] || [];
@@ -904,39 +906,59 @@ function CategoryTree(props) {
                 <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => onRename(node, renameValue)}>OK</button>
                 <button className="btn ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => setRenamingId(null)}>Annuler</button>
               </>
-            ) : (
+          ) : (
               <>
-                <div style={{ flex: 1, fontWeight: 600, fontSize: 14 }}>
+                <div style={{ flex: 1, fontWeight: 600, fontSize: 14, minWidth: 0 }}>
                   {node.name} <span style={{ color: 'var(--ink-dim)', fontWeight: 400, fontSize: 12 }}>({dishCountByCat[node.id] || 0})</span>
                 </div>
-                <button
-                  onClick={() => { setAddingChildFor(node.id); setNewChildName(''); }}
-                  className="btn ghost"
-                  style={{ padding: '4px 10px', fontSize: 12 }}
-                >
-                  + Sous-cat.
-                </button>
-                <button
-                  onClick={() => { setRenamingId(node.id); setRenameValue(node.name); }}
-                  className="btn ghost"
-                  style={{ padding: '4px 10px', fontSize: 12 }}
-                >
-                  Renommer
-                </button>
-                <button onClick={() => onMove(node, -1)} disabled={i === 0} className="btn ghost" style={{ padding: '4px 12px', fontSize: 13 }}>▲</button>
-                <button onClick={() => onMove(node, 1)} disabled={i === nodes.length - 1} className="btn ghost" style={{ padding: '4px 12px', fontSize: 13 }}>▼</button>
-                <button
-                  onClick={() => onDelete(node)}
-                  style={{ background: 'none', border: 'none', color: 'var(--ink-dim)', cursor: 'pointer', fontSize: 16 }}
-                  title="Supprimer (vide uniquement)"
-                >
-                  ✕
-                </button>
+                <div style={{ display: 'flex', gap: 3, flexShrink: 0 }}>
+                  {translateTitles && (
+                    <button
+                      onClick={() => setTranslateOpenId(translateOpenId === node.id ? null : node.id)}
+                      className="btn ghost"
+                      title="Traductions"
+                      style={{
+                        padding: '5px 9px', fontSize: 13,
+                        color: translateOpenId === node.id ? 'var(--wine)' : 'var(--ink-dim)',
+                        borderColor: translateOpenId === node.id ? 'var(--wine)' : 'var(--line)',
+                      }}
+                    >
+                      🌐
+                    </button>
+                  )}
+                  <button
+                    onClick={() => { setAddingChildFor(node.id); setNewChildName(''); }}
+                    className="btn ghost"
+                    title="Ajouter une sous-catégorie"
+                    style={{ padding: '5px 9px', fontSize: 13 }}
+                  >
+                    ➕
+                  </button>
+                  <button
+                    onClick={() => { setRenamingId(node.id); setRenameValue(node.name); }}
+                    className="btn ghost"
+                    title="Renommer"
+                    style={{ padding: '5px 9px', fontSize: 13 }}
+                  >
+                    ✎
+                  </button>
+                  <div style={{ display: 'flex', border: '1px solid var(--line)', borderRadius: 8, overflow: 'hidden' }}>
+                    <button onClick={() => onMove(node, -1)} disabled={i === 0} style={{ border: 'none', background: 'var(--paper)', color: 'var(--ink-dim)', padding: '5px 8px', fontSize: 12, cursor: 'pointer' }}>▲</button>
+                    <button onClick={() => onMove(node, 1)} disabled={i === nodes.length - 1} style={{ border: 'none', borderLeft: '1px solid var(--line)', background: 'var(--paper)', color: 'var(--ink-dim)', padding: '5px 8px', fontSize: 12, cursor: 'pointer' }}>▼</button>
+                  </div>
+                  <button
+                    onClick={() => onDelete(node)}
+                    style={{ background: 'none', border: 'none', color: 'var(--ink-dim)', cursor: 'pointer', fontSize: 15, padding: '5px 6px' }}
+                    title="Supprimer (vide uniquement)"
+                  >
+                    ✕
+                  </button>
+                </div>
               </>
             )}
           </div>
 
-          {translateTitles && renamingId !== node.id && (
+          {translateTitles && translateOpenId === node.id && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 4, marginBottom: 8, marginLeft: 18 }}>
               <input
                 defaultValue={node.name_en || ''}
