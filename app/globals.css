@@ -319,3 +319,22 @@ a { color: inherit; }
   font-family: 'Big Shoulders Text', sans-serif; text-transform: uppercase;
   letter-spacing: 0.04em; font-size: 11px; color: var(--ink-dim); margin-bottom: 6px;
 }
+/* ---- Générateur de QR par table ---- */
+.qr-print-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 14px; margin-top: 16px;
+}
+.qr-print-card {
+  border: 1px solid var(--line); border-radius: 12px; padding: 14px;
+  text-align: center; background: #fff;
+}
+
+@media print {
+  body * { visibility: hidden; }
+  .qr-print-grid, .qr-print-grid * { visibility: visible; }
+  .qr-print-grid {
+    position: absolute; top: 0; left: 0; width: 100%;
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .no-print > *:not(.qr-print-grid) { display: none; }
+}
