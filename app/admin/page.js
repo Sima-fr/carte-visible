@@ -55,7 +55,7 @@ export default function AdminPage() {
   const [settings, setSettings] = useState({ show_recommendations: false, track_stats: false, accent_color: '#7C2D2D', background_color: '#FAF3E6', translate_titles: false, social_facebook: '', social_instagram: '', social_email: '', social_website: '', social_phone: '' });
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('dishes');
+  const [activeTab, setActiveTab] = useState('dishes');const [tableCount, setTableCount] = useState(10);
   const [editingId, setEditingId] = useState(null);
   const [openDishCat, setOpenDishCat] = useState({});
   const [openRecoFor, setOpenRecoFor] = useState(null);
@@ -612,16 +612,18 @@ description_en: form.descriptionEn.trim() || null,
             Déconnexion
           </button>
         </div>
-        <h1 className="title">
+<h1 className="title">
           {activeTab === 'dishes' && 'Ma carte'}
           {activeTab === 'categories' && 'Mes catégories'}
           {activeTab === 'announcements' && 'Annonces'}
+          {activeTab === 'qrcodes' && 'QR codes'}
           {activeTab === 'settings' && 'Réglages'}
         </h1>
         <p className="sub">
           {activeTab === 'dishes' && "Ajoutez, mettez à jour ou retirez des plats."}
           {activeTab === 'categories' && "Organisez, réordonnez et traduisez vos catégories et sous-catégories."}
           {activeTab === 'announcements' && "Informe tes clients d'une offre du jour, d'une soirée spéciale ou d'une info importante."}
+          {activeTab === 'qrcodes' && "Génère un QR code par table, pour savoir quelle commande vient d'où."}
           {activeTab === 'settings' && "Options, couleurs et traductions de votre carte."}
           {' '}Les changements sont visibles côté client immédiatement.{' '}
           <a href="/menu" style={{ color: 'var(--wine)', fontWeight: 600 }}>Voir la carte client →</a>
@@ -636,6 +638,9 @@ description_en: form.descriptionEn.trim() || null,
           <button className={`admin-tab ${activeTab === 'announcements' ? 'active' : ''}`} onClick={() => setActiveTab('announcements')}>
             📢 Annonces
           </button>
+          <button className={`admin-tab ${activeTab === 'qrcodes' ? 'active' : ''}`} onClick={() => setActiveTab('qrcodes')}>
+            🖨️ QR codes
+          </button>
           <button className={`admin-tab ${activeTab === 'settings' ? 'active' : ''}`} onClick={() => setActiveTab('settings')}>
             ⚙️ Réglages
           </button>
@@ -643,6 +648,41 @@ description_en: form.descriptionEn.trim() || null,
       </div>
 
       <div style={{ padding: '0 20px' }}>
+        {activeTab === 'qrcodes' && (
+        <div className="card no-print">
+          <div className="field" style={{ maxWidth: 200 }}>
+            <label>Nombre de tables</label>
+            <input
+              type="number"
+              min="1"
+              max="200"
+              value={tableCount}
+              onChange={(e) => setTableCount(Math.max(1, parseInt(e.target.value) || 1))}
+            />
+          </div>
+          <button className="btn" onClick={() => window.print()}>
+            🖨️ Imprimer les {tableCount} QR codes
+          </button>
+          <p style={{ fontSize: 12, color: 'var(--ink-dim)', marginTop: 10 }}>
+            Aperçu ci-dessous — utilise "Imprimer" pour obtenir une page propre, un QR par table.
+          </p>
+          <div className="qr-print-grid">
+            {Array.from({ length: tableCount }, (_, i) => i + 1).map((n) => (
+              <div key={n} className="qr-print-card">
+                <div style={{ fontFamily: 'Fraunces, serif', fontWeight: 700, fontSize: 15, marginBottom: 6 }}>
+                  Table {n}
+                </div>
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&color=${(settings.accent_color || '#7C2D2D').replace('#', '')}&bgcolor=FFFFFF&data=${encodeURIComponent(`https://carte-visible.vercel.app/menu?table=${n}`)}`}
+                  alt={`QR table ${n}`}
+                  width={140}
+                  height={140}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+        )}
         {activeTab === 'dishes' && (
         <div className="card">
           <h3 style={{ fontFamily: 'Fraunces, serif', margin: '0 0 14px' }}>
