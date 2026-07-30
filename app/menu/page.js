@@ -304,13 +304,14 @@ export default function MenuPage() {
         </div>
       )}
 
-      <button className="cookie-toggle" onClick={() => setCookieOpen(true)} aria-label="Préférences cookies">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-          <circle cx="12" cy="12" r="9" />
-          <circle cx="9" cy="9" r="1.1" fill="var(--wine)" />
-          <circle cx="14" cy="8.5" r="1.1" fill="var(--wine)" />
-          <circle cx="15.5" cy="13" r="1.1" fill="var(--wine)" />
-          <circle cx="10" cy="14.5" r="1.1" fill="var(--wine)" />
+<button className="cookie-toggle" onClick={() => setCookieOpen(true)} aria-label="Préférences cookies">
+        <svg width="26" height="26" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="10" fill="var(--wine)" />
+          <circle cx="9" cy="8.5" r="1.3" fill="var(--paper)" />
+          <circle cx="15" cy="9" r="1" fill="var(--paper)" />
+          <circle cx="16.5" cy="13.5" r="1.3" fill="var(--paper)" />
+          <circle cx="11.5" cy="15.5" r="1" fill="var(--paper)" />
+          <circle cx="8" cy="13" r="0.9" fill="var(--paper)" />
         </svg>
       </button>
 
