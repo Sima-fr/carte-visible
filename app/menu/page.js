@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { supabase } from '../../lib/supabaseClient';
 import { formatPrice } from '../../lib/format';
-import { t, dishName, dishDescription, translateAllergens, translateRecoLabel, categoryName, announcementTitle, announcementMessage } from '../../lib/i18n';
+import { t, dishName, dishDescription, translateAllergens, translateRecoLabel, categoryName, announcementTitle, announcementMessage } from '../../lib/i18n';import { ALLERGEN_LIST } from '../../lib/allergens';
 
 function seasonGlyph() {
   const month = new Date().getMonth();
@@ -35,7 +35,9 @@ export default function MenuPage() {
   const [openNode, setOpenNode] = useState({});
   const [cart, setCart] = useState({});
   const [cartOpen, setCartOpen] = useState(false);
-  const [lang, setLang] = useState('fr');   const [cookieChoice, setCookieChoice] = useState(null);   const [cookieOpen, setCookieOpen] = useState(false);    useEffect(() => {     const saved = typeof window !== 'undefined' ? window.localStorage.getItem('cv-cookie-choice') : null;     setCookieChoice(saved);   }, []);    function setCookies(choice) {     setCookieChoice(choice);     if (typeof window !== 'undefined') window.localStorage.setItem('cv-cookie-choice', choice);     setCookieOpen(false);   }
+  const [lang, setLang] = useState('fr');   const [cookieChoice, setCookieChoice] = useState(null);   const [cookieOpen, setCookieOpen] = useState(false);const [filterOpen, setFilterOpen] = useState(false);
+  const [dietFilters, setDietFilters] = useState({ vegetarian: false, vegan: false, glutenFree: false });
+  const [excludedAllergens, setExcludedAllergens] = useState([]);    useEffect(() => {     const saved = typeof window !== 'undefined' ? window.localStorage.getItem('cv-cookie-choice') : null;     setCookieChoice(saved);   }, []);    function setCookies(choice) {     setCookieChoice(choice);     if (typeof window !== 'undefined') window.localStorage.setItem('cv-cookie-choice', choice);     setCookieOpen(false);   }
   const [announcements, setAnnouncements] = useState([]);
 
   useEffect(() => {
@@ -67,15 +69,41 @@ export default function MenuPage() {
   }, []);
 
   const byParent = useMemo(() => buildTree(categories), [categories]);
+
+  const visibleDishes = useMemo(() => {
+    const anyDietFilter = dietFilters.vegetarian || dietFilters.vegan || dietFilters.glutenFree;
+    if (!anyDietFilter && excludedAllergens.length === 0) return dishes;
+    return dishes.filter((d) => {
+      if (dietFilters.vegetarian && !d.is_vegetarian) return false;
+      if (dietFilters.vegan && !d.is_vegan) return false;
+      if (dietFilters.glutenFree && !d.is_gluten_free) return false;
+      if (excludedAllergens.length > 0 && d.allergens) {
+        const dishAllergens = d.allergens.split(',').map((a) => a.trim());
+        if (excludedAllergens.some((a) => dishAllergens.includes(a))) return false;
+      }
+      return true;
+    });
+  }, [dishes, dietFilters, excludedAllergens]);
+
   const dishesByCat = useMemo(() => {
     const map = {};
-    dishes.forEach((d) => {
+    visibleDishes.forEach((d) => {
       const key = d.category_id || 'sans-categorie';
       if (!map[key]) map[key] = [];
       map[key].push(d);
     });
     return map;
-  }, [dishes]);
+  }, [visibleDishes]);
+
+  function toggleDietFilter(key) {
+    setDietFilters((f) => ({ ...f, [key]: !f[key] }));
+  }
+
+  function toggleAllergenFilter(a) {
+    setExcludedAllergens((list) => (list.includes(a) ? list.filter((x) => x !== a) : [...list, a]));
+  }
+
+  const activeFilterCount = Object.values(dietFilters).filter(Boolean).length + excludedAllergens.length;
 
   const socialLinks = useMemo(() => {
     const links = [];
@@ -137,7 +165,7 @@ export default function MenuPage() {
               </div>
             )}
           </div>
-          <div style={{ fontFamily: 'Fraunces, serif', fontSize: 24, fontWeight: 700, marginBottom: 4 }}>{dishName(selected, lang, settings.translate_titles)}</div>
+          <div style={{ fontFamily: 'Fraunces, serif', fontSize: 24, fontWeight: 700, marginBottom: 4 }}>             {dishName(selected, lang, settings.translate_titles)}             {selected.is_vegetarian && <span title="Végétarien" style={{ marginLeft: 8, fontSize: 18 }}>🌱</span>}             {selected.is_vegan && <span title="Vegan" style={{ marginLeft: 4, fontSize: 18 }}>🌿</span>}             {selected.is_gluten_free && <span title="Sans gluten" style={{ marginLeft: 4, fontSize: 18 }}>🌾</span>}           </div>
           {dishDescription(selected, lang) && (
             <p style={{ color: 'var(--ink-dim)', fontSize: 13.5, lineHeight: 1.5, marginBottom: 6 }}>{dishDescription(selected, lang)}</p>
           )}
@@ -226,7 +254,18 @@ export default function MenuPage() {
       <div className="header">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div className="eyebrow">Le Petit Basilic <span className="season-glyph">{seasonGlyph()}</span></div>
-          <div style={{ display: 'flex', gap: 4 }}>
+          <div style={{ display: 'flex', gap: 4 }}><button
+              onClick={() => setFilterOpen((o) => !o)}
+              className="toggle-btn"
+              style={{
+                marginLeft: 0,
+                color: activeFilterCount > 0 ? 'var(--wine)' : 'var(--ink-dim)',
+                borderColor: activeFilterCount > 0 ? 'var(--wine)' : 'var(--line)',
+                background: activeFilterCount > 0 ? 'rgba(124,45,45,0.08)' : 'var(--paper)',
+              }}
+            >
+              🔎 Filtres{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+            </button>
             {['fr', 'en', 'de'].map((code) => (
               <button
                 key={code}
@@ -245,7 +284,31 @@ export default function MenuPage() {
           </div>
         </div>
         <h1 className="title">{t(lang, 'menuTitle')}</h1>
-        <p className="sub">{t(lang, 'subheading')}</p>
+<p className="sub">{t(lang, 'subheading')}</p>
+
+        {filterOpen && (
+          <div className="filter-panel">
+            <div className="filter-group-title">Régime</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+              <button onClick={() => toggleDietFilter('vegetarian')} className={`toggle-btn ${dietFilters.vegetarian ? 'on' : ''}`} style={{ marginLeft: 0 }}>🌱 Végétarien</button>
+              <button onClick={() => toggleDietFilter('vegan')} className={`toggle-btn ${dietFilters.vegan ? 'on' : ''}`} style={{ marginLeft: 0 }}>🌿 Vegan</button>
+              <button onClick={() => toggleDietFilter('glutenFree')} className={`toggle-btn ${dietFilters.glutenFree ? 'on' : ''}`} style={{ marginLeft: 0 }}>🌾 Sans gluten</button>
+            </div>
+            <div className="filter-group-title">Exclure un allergène</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {ALLERGEN_LIST.map((a) => (
+                <button
+                  key={a}
+                  onClick={() => toggleAllergenFilter(a)}
+                  className={`toggle-btn ${excludedAllergens.includes(a) ? 'on' : ''}`}
+                  style={{ marginLeft: 0 }}
+                >
+                  {a}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {announcements.length > 0 && (
@@ -444,8 +507,11 @@ function DishRow({ dish, dishes, settings, lang, onView, onAdd }) {
         }}
       />
       <div onClick={dish.available ? onView : undefined} style={{ flex: 1, cursor: dish.available ? 'pointer' : 'default' }}>
-        <div style={{ fontWeight: 600, fontSize: 14.5 }}>
+<div style={{ fontWeight: 600, fontSize: 14.5 }}>
           {dishName(dish, lang, settings?.translate_titles)}
+          {dish.is_vegetarian && <span title="Végétarien" style={{ marginLeft: 6, fontSize: 13 }}>🌱</span>}
+          {dish.is_vegan && <span title="Vegan" style={{ marginLeft: 3, fontSize: 13 }}>🌿</span>}
+          {dish.is_gluten_free && <span title="Sans gluten" style={{ marginLeft: 3, fontSize: 13 }}>🌾</span>}
           {!dish.available && <span className="badge-epuise">Épuisé</span>}
         </div>
         {dishDescription(dish, lang) && (
