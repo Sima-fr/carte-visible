@@ -35,7 +35,7 @@ export default function MenuPage() {
   const [openNode, setOpenNode] = useState({});
   const [cart, setCart] = useState({});
   const [cartOpen, setCartOpen] = useState(false);
-  const [lang, setLang] = useState('fr');
+  const [lang, setLang] = useState('fr');   const [cookieChoice, setCookieChoice] = useState(null);   const [cookieOpen, setCookieOpen] = useState(false);    useEffect(() => {     const saved = typeof window !== 'undefined' ? window.localStorage.getItem('cv-cookie-choice') : null;     setCookieChoice(saved);   }, []);    function setCookies(choice) {     setCookieChoice(choice);     if (typeof window !== 'undefined') window.localStorage.setItem('cv-cookie-choice', choice);     setCookieOpen(false);   }
   const [announcements, setAnnouncements] = useState([]);
 
   useEffect(() => {
@@ -299,12 +299,35 @@ export default function MenuPage() {
             </div>
           )}
           <button className="social-toggle" onClick={() => setSocialOpen((o) => !o)}>
-            {socialOpen ? '︿' : '﹀'}
+            {socialOpen ? '▲' : '▼'}
           </button>
         </div>
       )}
-    </div>
-  );
+
+      <button className="cookie-toggle" onClick={() => setCookieOpen(true)} aria-label="Préférences cookies">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <circle cx="12" cy="12" r="9" />
+          <circle cx="9" cy="9" r="1.1" fill="var(--wine)" />
+          <circle cx="14" cy="8.5" r="1.1" fill="var(--wine)" />
+          <circle cx="15.5" cy="13" r="1.1" fill="var(--wine)" />
+          <circle cx="10" cy="14.5" r="1.1" fill="var(--wine)" />
+        </svg>
+      </button>
+
+      {cookieOpen && (
+        <div className="cookie-overlay" onClick={() => setCookieOpen(false)}>
+          <div className="cookie-modal" onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ fontFamily: 'Fraunces, serif', fontSize: 20, margin: '0 0 8px' }}>Cookies</h3>
+            <p style={{ fontSize: 13, color: 'var(--ink-dim)', marginBottom: 16 }}>
+              Ce site utilise des cookies techniques pour mémoriser vos préférences (langue, panier). Aucune donnée n'est partagée avec des tiers.
+            </p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn ghost" style={{ flex: 1 }} onClick={() => setCookies('refused')}>Refuser</button>
+              <button className="btn" style={{ flex: 1 }} onClick={() => setCookies('accepted')}>Accepter</button>
+            </div>
+          </div>
+        </div>
+      )}
 }
 
 function CategoryLevel({ parentId, depth, byParent, dishesByCat, settings, dishes, lang, openNode, setOpenNode, onView, onAdd }) {
