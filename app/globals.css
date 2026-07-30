@@ -291,3 +291,22 @@ a { color: inherit; }
 .announcement-message {
   font-size: 12.5px; color: var(--ink); line-height: 1.4;
 }
+/* ---- Préférences cookies (client) ---- */
+.cookie-toggle {
+  position: fixed; left: 20px; bottom: 20px; z-index: 15;
+  width: 44px; height: 44px; border-radius: 999px;
+  background: var(--card); border: 1px solid var(--line);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--wine); cursor: pointer;
+  box-shadow: 0 4px 12px rgba(43,33,24,0.12);
+}
+.cookie-overlay {
+  position: fixed; inset: 0; background: rgba(43,33,24,0.4);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 30; padding: 20px;
+}
+.cookie-modal {
+  background: var(--paper); border-radius: 16px; padding: 24px;
+  max-width: 340px; width: 100%;
+  box-shadow: 0 12px 32px rgba(43,33,24,0.25);
+}
