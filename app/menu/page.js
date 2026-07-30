@@ -36,6 +36,14 @@ export default function MenuPage() {
   const [cart, setCart] = useState({});
   const [cartOpen, setCartOpen] = useState(false);
   const [lang, setLang] = useState('fr');   const [cookieChoice, setCookieChoice] = useState(null);   const [cookieOpen, setCookieOpen] = useState(false);const [filterOpen, setFilterOpen] = useState(false);
+  const [tableNumber, setTableNumber] = useState(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const table = params.get('table');
+    if (table) setTableNumber(table);
+  }, []);
   const [dietFilters, setDietFilters] = useState({ vegetarian: false, vegan: false, glutenFree: false });
   const [excludedAllergens, setExcludedAllergens] = useState([]);    useEffect(() => {     const saved = typeof window !== 'undefined' ? window.localStorage.getItem('cv-cookie-choice') : null;     setCookieChoice(saved);   }, []);    function setCookies(choice) {     setCookieChoice(choice);     if (typeof window !== 'undefined') window.localStorage.setItem('cv-cookie-choice', choice);     setCookieOpen(false);   }
   const [announcements, setAnnouncements] = useState([]);
@@ -238,10 +246,15 @@ if (dishesRes.data) setDishes(dishesRes.data);
             </div>
           ))}
 
-          {cartItems.length > 0 && (
+{cartItems.length > 0 && (
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 18, fontWeight: 700, fontSize: 16 }}>
               <span>{t(lang, 'total')}</span>
               <span style={{ color: 'var(--wine)' }}>{cartTotal.toFixed(2).replace('.', ',')} €</span>
+            </div>
+          )}
+          {tableNumber && (
+            <div style={{ marginTop: 14, padding: '10px 14px', background: 'var(--wine)', color: '#FAF3E6', borderRadius: 10, textAlign: 'center', fontFamily: 'Fraunces, serif', fontWeight: 700, fontSize: 17 }}>
+              Table {tableNumber}
             </div>
           )}
           <p style={{ color: 'var(--ink-dim)', fontSize: 12, marginTop: 16 }}>
