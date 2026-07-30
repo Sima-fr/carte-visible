@@ -328,6 +328,8 @@ export default function MenuPage() {
           </div>
         </div>
       )}
+</div>
+  );
 }
 
 function CategoryLevel({ parentId, depth, byParent, dishesByCat, settings, dishes, lang, openNode, setOpenNode, onView, onAdd }) {
