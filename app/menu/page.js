@@ -59,11 +59,15 @@ export default function MenuPage() {
         supabase.from('announcements').select('*').eq('restaurant_id', restaurant.id).eq('active', true).order('position', { ascending: true }),
       ]);
 
-      if (dishesRes.data) setDishes(dishesRes.data);
+if (dishesRes.data) setDishes(dishesRes.data);
       if (categoriesRes.data) setCategories(categoriesRes.data);
       if (settingsRes.data) setSettings(settingsRes.data);
       if (announcementsRes.data) setAnnouncements(announcementsRes.data);
       setLoading(false);
+
+      if (settingsRes.data?.track_stats) {
+        supabase.from('menu_views').insert({ restaurant_id: restaurant.id });
+      }
     }
     loadAll();
   }, []);
