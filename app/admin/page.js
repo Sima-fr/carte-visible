@@ -15,6 +15,7 @@ const emptyForm = {
   name: '', price: '', categoryId: '', newCategory: '',
   description: '', allergensChecked: [], allergensCustom: '',
   nameEn: '', nameDe: '', descriptionEn: '', descriptionDe: '',
+  isVegetarian: false, isVegan: false, isGlutenFree: false,
 };
 
 function buildTree(categories) {
@@ -308,7 +309,11 @@ export default function AdminPage() {
       nameEn: dish.name_en || '',
       nameDe: dish.name_de || '',
       descriptionEn: dish.description_en || '',
+descriptionEn: dish.description_en || '',
       descriptionDe: dish.description_de || '',
+      isVegetarian: !!dish.is_vegetarian,
+      isVegan: !!dish.is_vegan,
+      isGlutenFree: !!dish.is_gluten_free,
     });
     setFile(null);
     setPreview(dish.photo_url || null);
@@ -380,9 +385,12 @@ export default function AdminPage() {
       photo_url,
       name_en: form.nameEn.trim() || null,
       name_de: form.nameDe.trim() || null,
-      description_en: form.descriptionEn.trim() || null,
+description_en: form.descriptionEn.trim() || null,
       description_de: form.descriptionDe.trim() || null,
       restaurant_id: restaurant.id,
+      is_vegetarian: form.isVegetarian,
+      is_vegan: form.isVegan,
+      is_gluten_free: form.isGlutenFree,
     };
 
     let error;
@@ -834,6 +842,13 @@ export default function AdminPage() {
                   onChange={(e) => updateForm({ allergensCustom: e.target.value })}
                   placeholder="Autre allergène (séparé par une virgule)"
                 />
+              </div><div className="field">
+                <label>Badges diététiques (optionnel)</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  <button type="button" onClick={() => updateForm({ isVegetarian: !form.isVegetarian })} className={`toggle-btn ${form.isVegetarian ? 'on' : ''}`} style={{ marginLeft: 0 }}>🌱 Végétarien</button>
+                  <button type="button" onClick={() => updateForm({ isVegan: !form.isVegan })} className={`toggle-btn ${form.isVegan ? 'on' : ''}`} style={{ marginLeft: 0 }}>🌿 Vegan</button>
+                  <button type="button" onClick={() => updateForm({ isGlutenFree: !form.isGlutenFree })} className={`toggle-btn ${form.isGlutenFree ? 'on' : ''}`} style={{ marginLeft: 0 }}>🌾 Sans gluten</button>
+                </div>
               </div>
 
               <div className="field" style={{ borderTop: '1px dashed var(--line)', paddingTop: 14, marginTop: 4 }}>
