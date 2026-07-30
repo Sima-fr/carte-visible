@@ -162,13 +162,28 @@ export default function AdminPage() {
     if (!error && data) setSettings(data);
   }
 
-  useEffect(() => {
+useEffect(() => {
     if (!restaurant) return;
     loadDishes();
     loadCategories();
     loadSettings();
     loadAnnouncements();
+    loadViewCount();
   }, [restaurant]);
+
+  const [viewCount, setViewCount] = useState(null);
+
+  async function loadViewCount() {
+    if (!restaurant) return;
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const { count } = await supabase
+      .from('menu_views')
+      .select('*', { count: 'exact', head: true })
+      .eq('restaurant_id', restaurant.id)
+      .gte('viewed_at', startOfDay.toISOString());
+    setViewCount(count ?? 0);
+  }
 
   async function loadAnnouncements() {
     if (!restaurant) return;
@@ -1065,10 +1080,10 @@ description_en: form.descriptionEn.trim() || null,
                 {settings.show_recommendations ? 'Activé' : 'Désactivé'}
               </button>
             </div>
-            <div className="toggle-row" style={{ borderBottom: 'none' }}>
+<div className="toggle-row" style={{ borderBottom: 'none' }}>
               <div>
                 <div className="toggle-label">Statistiques</div>
-                <div className="toggle-desc">Suivi des plats commandés par jour et par service.</div>
+                <div className="toggle-desc">Compte le nombre de fois où ta carte est consultée par jour.</div>
               </div>
               <button
                 className={`toggle-btn ${settings.track_stats ? 'on' : ''}`}
@@ -1077,6 +1092,11 @@ description_en: form.descriptionEn.trim() || null,
                 {settings.track_stats ? 'Activé' : 'Désactivé'}
               </button>
             </div>
+            {settings.track_stats && (
+              <div style={{ marginTop: 4, padding: '10px 12px', background: 'var(--paper)', borderRadius: 10, fontSize: 13 }}>
+                📊 <strong>{viewCount === null ? '…' : viewCount}</strong> consultation{viewCount > 1 ? 's' : ''} de la carte aujourd'hui
+              </div>
+            )}
           </div>
 
           <div className="settings-section" style={{ borderTop: '1px solid var(--line)', paddingTop: 22 }}>
