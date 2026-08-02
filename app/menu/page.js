@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { supabase } from '../../lib/supabaseClient';
 import { formatPrice } from '../../lib/format';
-import { t, dishName, dishDescription, translateAllergens, translateRecoLabel, categoryName, announcementTitle, announcementMessage } from '../../lib/i18n';import { ALLERGEN_LIST } from '../../lib/allergens';
+import { t, dishName, dishDescription, translateAllergens, translateRecoLabel, categoryName, announcementTitle, announcementMessage } from '../../lib/i18n';import { ALLERGEN_LIST } from '../../lib/allergens';import { flagFor } from '../../lib/languages';
 
 function seasonGlyph() {
   const month = new Date().getMonth();
@@ -271,7 +271,8 @@ if (dishesRes.data) setDishes(dishesRes.data);
       <div className="header">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div className="eyebrow">Le Petit Basilic <span className="season-glyph">{seasonGlyph()}</span></div>
-          <div style={{ display: 'flex', gap: 4 }}><button
+<div style={{ display: 'flex', gap: 4 }}>
+            <button
               onClick={() => setFilterOpen((o) => !o)}
               className="toggle-btn"
               style={{
@@ -283,19 +284,19 @@ if (dishesRes.data) setDishes(dishesRes.data);
             >
               🔎 Filtres{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
             </button>
-            {['fr', 'en', 'de'].map((code) => (
+            {['fr', ...((settings.enabled_languages || 'en,de').split(',').map((s) => s.trim()).filter(Boolean))].map((code) => (
               <button
                 key={code}
                 onClick={() => setLang(code)}
                 className="toggle-btn"
                 style={{
-                  marginLeft: 0,
+                  marginLeft: 0, fontSize: 16, padding: '6px 10px',
                   color: lang === code ? 'var(--wine)' : 'var(--ink-dim)',
                   borderColor: lang === code ? 'var(--wine)' : 'var(--line)',
                   background: lang === code ? 'rgba(124,45,45,0.08)' : 'var(--paper)',
                 }}
               >
-                {code.toUpperCase()}
+                {flagFor(code)}
               </button>
             ))}
           </div>
