@@ -4,7 +4,9 @@ import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import { supabase } from '../../lib/supabaseClient';
 import { formatPrice } from '../../lib/format';
-import { t, dishName, dishDescription, translateAllergens, translateRecoLabel, categoryName, announcementTitle, announcementMessage } from '../../lib/i18n';import { ALLERGEN_LIST } from '../../lib/allergens';import { flagFor } from '../../lib/languages';
+import { t, dishName, dishDescription, translateAllergens, translateRecoLabel, categoryName, announcementTitle, announcementMessage } from '../../lib/i18n';
+import { ALLERGEN_LIST } from '../../lib/allergens';
+import { flagFor } from '../../lib/languages';
 
 function seasonGlyph() {
   const month = new Date().getMonth();
@@ -35,8 +37,15 @@ export default function MenuPage() {
   const [openNode, setOpenNode] = useState({});
   const [cart, setCart] = useState({});
   const [cartOpen, setCartOpen] = useState(false);
-  const [lang, setLang] = useState('fr');   const [cookieChoice, setCookieChoice] = useState(null);   const [cookieOpen, setCookieOpen] = useState(false);const [filterOpen, setFilterOpen] = useState(false);const [langMenuOpen, setLangMenuOpen] = useState(false);
+  const [lang, setLang] = useState('fr');
+  const [cookieChoice, setCookieChoice] = useState(null);
+  const [cookieOpen, setCookieOpen] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [langMenuOpen, setLangMenuOpen] = useState(false);
   const [tableNumber, setTableNumber] = useState(null);
+  const [dietFilters, setDietFilters] = useState({ vegetarian: false, vegan: false, glutenFree: false });
+  const [excludedAllergens, setExcludedAllergens] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -44,9 +53,17 @@ export default function MenuPage() {
     const table = params.get('table');
     if (table) setTableNumber(table);
   }, []);
-  const [dietFilters, setDietFilters] = useState({ vegetarian: false, vegan: false, glutenFree: false });
-  const [excludedAllergens, setExcludedAllergens] = useState([]);    useEffect(() => {     const saved = typeof window !== 'undefined' ? window.localStorage.getItem('cv-cookie-choice') : null;     setCookieChoice(saved);   }, []);    function setCookies(choice) {     setCookieChoice(choice);     if (typeof window !== 'undefined') window.localStorage.setItem('cv-cookie-choice', choice);     setCookieOpen(false);   }
-  const [announcements, setAnnouncements] = useState([]);
+
+  useEffect(() => {
+    const saved = typeof window !== 'undefined' ? window.localStorage.getItem('cv-cookie-choice') : null;
+    setCookieChoice(saved);
+  }, []);
+
+  function setCookies(choice) {
+    setCookieChoice(choice);
+    if (typeof window !== 'undefined') window.localStorage.setItem('cv-cookie-choice', choice);
+    setCookieOpen(false);
+  }
 
   useEffect(() => {
     async function loadAll() {
@@ -67,7 +84,7 @@ export default function MenuPage() {
         supabase.from('announcements').select('*').eq('restaurant_id', restaurant.id).eq('active', true).order('position', { ascending: true }),
       ]);
 
-if (dishesRes.data) setDishes(dishesRes.data);
+      if (dishesRes.data) setDishes(dishesRes.data);
       if (categoriesRes.data) setCategories(categoriesRes.data);
       if (settingsRes.data) setSettings(settingsRes.data);
       if (announcementsRes.data) setAnnouncements(announcementsRes.data);
@@ -177,7 +194,12 @@ if (dishesRes.data) setDishes(dishesRes.data);
               </div>
             )}
           </div>
-          <div style={{ fontFamily: 'Fraunces, serif', fontSize: 24, fontWeight: 700, marginBottom: 4 }}>             {dishName(selected, lang, settings.translate_titles)}             {selected.is_vegetarian && <span title="Végétarien" style={{ marginLeft: 8, fontSize: 18 }}>🌱</span>}             {selected.is_vegan && <span title="Vegan" style={{ marginLeft: 4, fontSize: 18 }}>🌿</span>}             {selected.is_gluten_free && <span title="Sans gluten" style={{ marginLeft: 4, fontSize: 18 }}>🌾</span>}           </div>
+          <div style={{ fontFamily: 'Fraunces, serif', fontSize: 24, fontWeight: 700, marginBottom: 4 }}>
+            {dishName(selected, lang, settings.translate_titles)}
+            {selected.is_vegetarian && <span title="Végétarien" style={{ marginLeft: 8, fontSize: 18 }}>🌱</span>}
+            {selected.is_vegan && <span title="Vegan" style={{ marginLeft: 4, fontSize: 18 }}>🌿</span>}
+            {selected.is_gluten_free && <span title="Sans gluten" style={{ marginLeft: 4, fontSize: 18 }}>🌾</span>}
+          </div>
           {dishDescription(selected, lang) && (
             <p style={{ color: 'var(--ink-dim)', fontSize: 13.5, lineHeight: 1.5, marginBottom: 6 }}>{dishDescription(selected, lang)}</p>
           )}
@@ -246,15 +268,36 @@ if (dishesRes.data) setDishes(dishesRes.data);
             </div>
           ))}
 
-{cartItems.length > 0 && (
-<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          {cartItems.length > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 18, fontWeight: 700, fontSize: 16 }}>
+              <span>{t(lang, 'total')}</span>
+              <span style={{ color: 'var(--wine)' }}>{cartTotal.toFixed(2).replace('.', ',')} €</span>
+            </div>
+          )}
+          {tableNumber && (
+            <div style={{ marginTop: 14, padding: '10px 14px', background: 'var(--wine)', color: '#FAF3E6', borderRadius: 10, textAlign: 'center', fontFamily: 'Fraunces, serif', fontWeight: 700, fontSize: 17 }}>
+              Table {tableNumber}
+            </div>
+          )}
+          <p style={{ color: 'var(--ink-dim)', fontSize: 12, marginTop: 16 }}>
+            {t(lang, 'showServer')}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="wrap" style={{ '--wine': settings.accent_color || '#7C2D2D', '--paper': settings.background_color || '#FAF3E6' }}>
+      <div className="awning" />
+      <div className="header">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div className="eyebrow">Le Petit Basilic <span className="season-glyph">{seasonGlyph()}</span></div>
           <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
             <button
               onClick={() => setFilterOpen((o) => !o)}
               className="toggle-btn"
-              style={{
-                marginLeft: 0,
+              style={{marginLeft: 0,
                 color: activeFilterCount > 0 ? 'var(--wine)' : 'var(--ink-dim)',
                 borderColor: activeFilterCount > 0 ? 'var(--wine)' : 'var(--line)',
                 background: activeFilterCount > 0 ? 'rgba(124,45,45,0.08)' : 'var(--paper)',
@@ -292,7 +335,7 @@ if (dishesRes.data) setDishes(dishesRes.data);
           </div>
         </div>
         <h1 className="title">{t(lang, 'menuTitle')}</h1>
-<p className="sub">{t(lang, 'subheading')}</p>
+        <p className="sub">{t(lang, 'subheading')}</p>
 
         {filterOpen && (
           <div className="filter-panel">
@@ -370,12 +413,12 @@ if (dishesRes.data) setDishes(dishesRes.data);
             </div>
           )}
           <button className="social-toggle" onClick={() => setSocialOpen((o) => !o)}>
-            {socialOpen ? '▲' : '▼'}
+            {socialOpen ? '︿' : '﹀'}
           </button>
         </div>
       )}
 
-<button className="cookie-toggle" onClick={() => setCookieOpen(true)} aria-label="Préférences cookies">
+      <button className="cookie-toggle" onClick={() => setCookieOpen(true)} aria-label="Préférences cookies">
         <svg width="26" height="26" viewBox="0 0 24 24">
           <circle cx="12" cy="12" r="10" fill="var(--wine)" />
           <circle cx="9" cy="8.5" r="1.3" fill="var(--paper)" />
@@ -400,7 +443,7 @@ if (dishesRes.data) setDishes(dishesRes.data);
           </div>
         </div>
       )}
-</div>
+    </div>
   );
 }
 
@@ -515,7 +558,7 @@ function DishRow({ dish, dishes, settings, lang, onView, onAdd }) {
         }}
       />
       <div onClick={dish.available ? onView : undefined} style={{ flex: 1, cursor: dish.available ? 'pointer' : 'default' }}>
-<div style={{ fontWeight: 600, fontSize: 14.5 }}>
+        <div style={{ fontWeight: 600, fontSize: 14.5 }}>
           {dishName(dish, lang, settings?.translate_titles)}
           {dish.is_vegetarian && <span title="Végétarien" style={{ marginLeft: 6, fontSize: 13 }}>🌱</span>}
           {dish.is_vegan && <span title="Vegan" style={{ marginLeft: 3, fontSize: 13 }}>🌿</span>}
