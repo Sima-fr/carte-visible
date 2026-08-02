@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { resizeImage } from '../../lib/resizeImage';
 import { formatPrice } from '../../lib/format';
-import { translateText } from '../../lib/translate';
+import { translateText } from '../../lib/translate';import { LANGUAGE_CATALOG } from '../../lib/languages';
 
 const ALLERGEN_LIST = [
   'Gluten', 'Crustacés', 'Œufs', 'Poissons', 'Arachides', 'Soja', 'Lait',
@@ -16,6 +16,7 @@ const emptyForm = {
   description: '', allergensChecked: [], allergensCustom: '',
   nameEn: '', nameDe: '', descriptionEn: '', descriptionDe: '',
   isVegetarian: false, isVegan: false, isGlutenFree: false,
+  extraTranslations: {},
 };
 
 function buildTree(categories) {
@@ -52,7 +53,7 @@ function categoryPath(categories, id) {
 export default function AdminPage() {
   const [dishes, setDishes] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [settings, setSettings] = useState({ show_recommendations: false, track_stats: false, accent_color: '#7C2D2D', background_color: '#FAF3E6', translate_titles: false, social_facebook: '', social_instagram: '', social_email: '', social_website: '', social_phone: '' });
+  const [settings, setSettings] = useState({ show_recommendations: false, track_stats: false, accent_color: '#7C2D2D', background_color: '#FAF3E6', translate_titles: false, social_facebook: '', social_instagram: '', social_email: '', social_website: '', social_phone: '', enabled_languages: 'en,de' });
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('dishes');const [tableCount, setTableCount] = useState(10);
@@ -329,6 +330,8 @@ descriptionEn: dish.description_en || '',
       isVegetarian: !!dish.is_vegetarian,
       isVegan: !!dish.is_vegan,
       isGlutenFree: !!dish.is_gluten_free,
+    isGlutenFree: !!dish.is_gluten_free,
+      extraTranslations: dish.translations || {},
     });
     setFile(null);
     setPreview(dish.photo_url || null);
@@ -406,6 +409,8 @@ description_en: form.descriptionEn.trim() || null,
       is_vegetarian: form.isVegetarian,
       is_vegan: form.isVegan,
       is_gluten_free: form.isGlutenFree,
+    is_gluten_free: form.isGlutenFree,
+      translations: form.extraTranslations,
     };
 
     let error;
