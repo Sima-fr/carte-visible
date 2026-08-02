@@ -247,44 +247,9 @@ if (dishesRes.data) setDishes(dishesRes.data);
           ))}
 
 {cartItems.length > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 18, fontWeight: 700, fontSize: 16 }}>
-              <span>{t(lang, 'total')}</span>
-              <span style={{ color: 'var(--wine)' }}>{cartTotal.toFixed(2).replace('.', ',')} €</span>
-            </div>
-          )}
-          {tableNumber && (
-            <div style={{ marginTop: 14, padding: '10px 14px', background: 'var(--wine)', color: '#FAF3E6', borderRadius: 10, textAlign: 'center', fontFamily: 'Fraunces, serif', fontWeight: 700, fontSize: 17 }}>
-              Table {tableNumber}
-            </div>
-          )}
-          <p style={{ color: 'var(--ink-dim)', fontSize: 12, marginTop: 16 }}>
-            {t(lang, 'showServer')}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="wrap" style={{ '--wine': settings.accent_color || '#7C2D2D', '--paper': settings.background_color || '#FAF3E6' }}>
-      <div className="awning" />
-      <div className="header">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div className="eyebrow">Le Petit Basilic <span className="season-glyph">{seasonGlyph()}</span></div>
-<div style={{ display: 'flex', gap: 4 }}>
-            <button
-              onClick={() => setFilterOpen((o) => !o)}
-              className="toggle-btn"
-              style={{
-                marginLeft: 0,
-                color: activeFilterCount > 0 ? 'var(--wine)' : 'var(--ink-dim)',
-                borderColor: activeFilterCount > 0 ? 'var(--wine)' : 'var(--line)',
-                background: activeFilterCount > 0 ? 'rgba(124,45,45,0.08)' : 'var(--paper)',
-              }}
-            >
-              🔎 Filtres{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
-            </button>
-<div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
             <button
               onClick={() => setFilterOpen((o) => !o)}
               className="toggle-btn"
@@ -325,6 +290,7 @@ if (dishesRes.data) setDishes(dishesRes.data);
               )}
             </div>
           </div>
+        </div>
         <h1 className="title">{t(lang, 'menuTitle')}</h1>
 <p className="sub">{t(lang, 'subheading')}</p>
 
