@@ -35,7 +35,7 @@ export default function MenuPage() {
   const [openNode, setOpenNode] = useState({});
   const [cart, setCart] = useState({});
   const [cartOpen, setCartOpen] = useState(false);
-  const [lang, setLang] = useState('fr');   const [cookieChoice, setCookieChoice] = useState(null);   const [cookieOpen, setCookieOpen] = useState(false);const [filterOpen, setFilterOpen] = useState(false);
+  const [lang, setLang] = useState('fr');   const [cookieChoice, setCookieChoice] = useState(null);   const [cookieOpen, setCookieOpen] = useState(false);const [filterOpen, setFilterOpen] = useState(false);const [langMenuOpen, setLangMenuOpen] = useState(false);
   const [tableNumber, setTableNumber] = useState(null);
 
   useEffect(() => {
@@ -284,23 +284,47 @@ if (dishesRes.data) setDishes(dishesRes.data);
             >
               🔎 Filtres{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
             </button>
-            {['fr', ...((settings.enabled_languages || 'en,de').split(',').map((s) => s.trim()).filter(Boolean))].map((code) => (
+<div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+            <button
+              onClick={() => setFilterOpen((o) => !o)}
+              className="toggle-btn"
+              style={{
+                marginLeft: 0,
+                color: activeFilterCount > 0 ? 'var(--wine)' : 'var(--ink-dim)',
+                borderColor: activeFilterCount > 0 ? 'var(--wine)' : 'var(--line)',
+                background: activeFilterCount > 0 ? 'rgba(124,45,45,0.08)' : 'var(--paper)',
+              }}
+            >
+              🔎 Filtres{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+            </button>
+            <div style={{ position: 'relative' }}>
               <button
-                key={code}
-                onClick={() => setLang(code)}
+                onClick={() => setLangMenuOpen((o) => !o)}
                 className="toggle-btn"
-                style={{
-                  marginLeft: 0, fontSize: 16, padding: '6px 10px',
-                  color: lang === code ? 'var(--wine)' : 'var(--ink-dim)',
-                  borderColor: lang === code ? 'var(--wine)' : 'var(--line)',
-                  background: lang === code ? 'rgba(124,45,45,0.08)' : 'var(--paper)',
-                }}
+                style={{ marginLeft: 0, fontSize: 17, padding: '5px 9px' }}
               >
-                {flagFor(code)}
+                {flagFor(lang)}
               </button>
-            ))}
+              {langMenuOpen && (
+                <div className="cat-menu" style={{ display: 'flex', flexDirection: 'row', padding: 6, gap: 4, minWidth: 0 }}>
+                  {['fr', ...((settings.enabled_languages || 'en,de').split(',').map((s) => s.trim()).filter(Boolean))]
+                    .filter((code) => code !== lang)
+                    .map((code) => (
+                      <button
+                        key={code}
+                        onClick={() => { setLang(code); setLangMenuOpen(false); }}
+                        style={{
+                          background: 'none', border: 'none', cursor: 'pointer',
+                          fontSize: 18, padding: '4px 6px', borderRadius: 6,
+                        }}
+                      >
+                        {flagFor(code)}
+                      </button>
+                    ))}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
         <h1 className="title">{t(lang, 'menuTitle')}</h1>
 <p className="sub">{t(lang, 'subheading')}</p>
 
