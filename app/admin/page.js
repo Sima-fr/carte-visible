@@ -595,11 +595,13 @@ description_en: form.descriptionEn.trim() || null,
     await supabase.from('settings').update({ enabled_languages: value }).eq('restaurant_id', restaurant.id);
   }
 
-  function toggleExtraLang(code) {
+function toggleExtraLang(code) {
     const current = (settings.enabled_languages || '').split(',').map((s) => s.trim()).filter(Boolean);
     const next = current.includes(code) ? current.filter((c) => c !== code) : [...current, code];
     setEnabledLanguages(next);
   }
+
+  if (authLoading) {
     return (
       <div className="wrap">
         <div className="awning" />
