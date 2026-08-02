@@ -413,7 +413,7 @@ export default function MenuPage() {
             </div>
           )}
           <button className="social-toggle" onClick={() => setSocialOpen((o) => !o)}>
-            {socialOpen ? '︿' : '﹀'}
+            {socialOpen ? '▲' : '▼'}
           </button>
         </div>
       )}
