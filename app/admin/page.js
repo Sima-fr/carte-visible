@@ -543,6 +543,7 @@ description_en: form.descriptionEn.trim() || null,
           await supabase.from('categories').update(patch).eq('id', cat.id);
         }
       }
+      const extraLangs = (settings.enabled_languages || '').split(',').map((s) => s.trim()).filter((c) => c && c !== 'en' && c !== 'de');
       for (const d of dishes) {
         const patch = {};
         if (!d.name_en) patch.name_en = await translateText(d.name, 'en');
@@ -553,6 +554,21 @@ description_en: form.descriptionEn.trim() || null,
         }
         if (Object.keys(patch).length) {
           await supabase.from('dishes').update(patch).eq('id', d.id);
+        }
+        if (extraLangs.length) {
+          const current = d.translations || {};
+          const updated = { ...current };
+          let changed = false;
+          for (const code of extraLangs) {
+            const existing = current[code] || {};
+            const t = { ...existing };
+            if (!existing.name) { t.name = await translateText(d.name, code); changed = true; }
+            if (d.description && !existing.description) { t.description = await translateText(d.description, code); changed = true; }
+            updated[code] = t;
+          }
+          if (changed) {
+            await supabase.from('dishes').update({ translations: updated }).eq('id', d.id);
+          }
         }
       }
       for (const a of announcements) {
@@ -573,7 +589,17 @@ description_en: form.descriptionEn.trim() || null,
     }
   }
 
-  if (authLoading) {
+  async function setEnabledLanguages(codes) {
+    const value = codes.join(',');
+    setSettings((s) => ({ ...s, enabled_languages: value }));
+    await supabase.from('settings').update({ enabled_languages: value }).eq('restaurant_id', restaurant.id);
+  }
+
+  function toggleExtraLang(code) {
+    const current = (settings.enabled_languages || '').split(',').map((s) => s.trim()).filter(Boolean);
+    const next = current.includes(code) ? current.filter((c) => c !== code) : [...current, code];
+    setEnabledLanguages(next);
+  }
     return (
       <div className="wrap">
         <div className="awning" />
@@ -921,7 +947,24 @@ description_en: form.descriptionEn.trim() || null,
                   <input value={form.nameDe} onChange={(e) => updateForm({ nameDe: e.target.value })} placeholder="Name (allemand)" />
                   <input value={form.descriptionEn} onChange={(e) => updateForm({ descriptionEn: e.target.value })} placeholder="Description (anglais)" />
                   <input value={form.descriptionDe} onChange={(e) => updateForm({ descriptionDe: e.target.value })} placeholder="Beschreibung (allemand)" />
-                </div>
+                </div>{(settings.enabled_languages || '').split(',').map((s) => s.trim()).filter((c) => c && c !== 'en' && c !== 'de').map((code) => {
+                  const label = LANGUAGE_CATALOG.find((l) => l.code === code)?.label || code;
+                  const val = form.extraTranslations[code] || {};
+                  return (
+                    <div key={code} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 8 }}>
+                      <input
+                        value={val.name || ''}
+                        onChange={(e) => updateForm({ extraTranslations: { ...form.extraTranslations, [code]: { ...val, name: e.target.value } } })}
+                        placeholder={`Nom (${label})`}
+                      />
+                      <input
+                        value={val.description || ''}
+                        onChange={(e) => updateForm({ extraTranslations: { ...form.extraTranslations, [code]: { ...val, description: e.target.value } } })}
+                        placeholder={`Description (${label})`}
+                      />
+                    </div>
+                  );
+                })}
               </div>
 
               <div className="field">
@@ -1148,6 +1191,24 @@ description_en: form.descriptionEn.trim() || null,
             <div className="settings-section-head">
               <div className="settings-section-icon">🌍</div>
               <div className="settings-section-title">Langues</div>
+            </div><div className="field">
+              <label>Langues proposées à tes clients (en plus du français)</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {LANGUAGE_CATALOG.map((l) => {
+                  const active = (settings.enabled_languages || '').split(',').map((s) => s.trim()).includes(l.code);
+                  return (
+                    <button
+                      key={l.code}
+                      type="button"
+                      onClick={() => toggleExtraLang(l.code)}
+                      className={`toggle-btn ${active ? 'on' : ''}`}
+                      style={{ marginLeft: 0 }}
+                    >
+                      {l.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             <div className="toggle-row">
               <div>
