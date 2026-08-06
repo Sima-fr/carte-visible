@@ -79,7 +79,9 @@ export default function AdminPage() {
   const [annMessage, setAnnMessage] = useState('');
   const [annTitleEn, setAnnTitleEn] = useState('');
   const [annTitleDe, setAnnTitleDe] = useState('');
-  const [annMessageEn, setAnnMessageEn] = useState('');
+  const [annMessageEn, setAnnMessageEn] = useState('');const [annImageFile, setAnnImageFile] = useState(null);
+  const [annImagePreview, setAnnImagePreview] = useState(null);
+  const [annImageUrl, setAnnImageUrl] = useState(null);
   const [annMessageDe, setAnnMessageDe] = useState('');
 
   const [session, setSession] = useState(null);
@@ -196,11 +198,12 @@ useEffect(() => {
     if (data) setAnnouncements(data);
   }
 
-  function startAddAnnouncement() {
+function startAddAnnouncement() {
     setAnnEditingId(null);
     setAnnTitle('');
     setAnnMessage('');
     setAnnTitleEn(''); setAnnTitleDe(''); setAnnMessageEn(''); setAnnMessageDe('');
+    setAnnImageFile(null); setAnnImagePreview(null); setAnnImageUrl(null);
     setAnnFormOpen(true);
   }
 
@@ -210,6 +213,7 @@ useEffect(() => {
     setAnnMessage(a.message);
     setAnnTitleEn(a.title_en || ''); setAnnTitleDe(a.title_de || '');
     setAnnMessageEn(a.message_en || ''); setAnnMessageDe(a.message_de || '');
+    setAnnImageFile(null); setAnnImagePreview(a.image_url || null); setAnnImageUrl(a.image_url || null);
     setAnnFormOpen(true);
   }
 
@@ -219,12 +223,28 @@ useEffect(() => {
     setAnnTitle('');
     setAnnMessage('');
     setAnnTitleEn(''); setAnnTitleDe(''); setAnnMessageEn(''); setAnnMessageDe('');
+    setAnnImageFile(null); setAnnImagePreview(null); setAnnImageUrl(null);
   }
 
-  async function saveAnnouncement() {
+async function saveAnnouncement() {
     if (!annTitle.trim() || !annMessage.trim()) return;
+    let image_url = annImageUrl;
+    if (annImageFile) {
+      let toUpload = annImageFile;
+      try {
+        toUpload = await resizeImage(annImageFile, 800, 0.8);
+      } catch (e) {
+        toUpload = annImageFile;
+      }
+      const path = `ann-${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
+      const { error } = await supabase.storage.from('photos').upload(path, toUpload, { contentType: 'image/jpeg' });
+      if (!error) {
+        const { data } = supabase.storage.from('photos').getPublicUrl(path);
+        image_url = data.publicUrl;
+      }
+    }
     const payload = {
-      title: annTitle.trim(), message: annMessage.trim(),
+      title: annTitle.trim(), message: annMessage.trim(), image_url,
       title_en: annTitleEn.trim() || null, title_de: annTitleDe.trim() || null,
       message_en: annMessageEn.trim() || null, message_de: annMessageDe.trim() || null,
     };
@@ -1143,6 +1163,31 @@ alt={`QR table ${n}`}
               <div className="field">
                 <label>Message</label>
                 <input value={annMessage} onChange={(e) => setAnnMessage(e.target.value)} placeholder="Ex. Dès 19h, formule spéciale à 25€. Réservation conseillée." />
+              </div><div className="field">
+                <label>Image (optionnel)</label>
+                <label
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
+                    border: '1px dashed var(--line)', borderRadius: 10, padding: 10, background: 'var(--paper)',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 40, height: 40, borderRadius: 8, flexShrink: 0,
+                      backgroundColor: '#EFE6D4', backgroundSize: 'cover', backgroundPosition: 'center',
+                      backgroundImage: annImagePreview ? `url('${annImagePreview}')` : 'none',
+                    }}
+                  />
+                  <span style={{ fontSize: 12.5, color: 'var(--ink-dim)' }}>
+                    {annImageFile ? annImageFile.name : annImagePreview ? "Remplacer l'image…" : 'Choisir une image…'}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => { const f = e.target.files[0]; if (!f) return; setAnnImageFile(f); setAnnImagePreview(URL.createObjectURL(f)); }}
+                    style={{ display: 'none' }}
+                  />
+                </label>
               </div>
               <div className="field" style={{ borderTop: '1px dashed var(--line)', paddingTop: 14 }}>
                 <label style={{ marginBottom: 8 }}>Traductions (optionnel)</label>
