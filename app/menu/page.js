@@ -7,6 +7,7 @@ import { formatPrice } from '../../lib/format';
 import { t, dishName, dishDescription, translateAllergens, translateRecoLabel, categoryName, announcementTitle, announcementMessage } from '../../lib/i18n';
 import { ALLERGEN_LIST } from '../../lib/allergens';
 import { flagFor } from '../../lib/languages';
+import { setExtraUiStrings } from '../../lib/i18n';
 
 function seasonGlyph() {
   const month = new Date().getMonth();
@@ -86,7 +87,10 @@ export default function MenuPage() {
 
       if (dishesRes.data) setDishes(dishesRes.data);
       if (categoriesRes.data) setCategories(categoriesRes.data);
-      if (settingsRes.data) setSettings(settingsRes.data);
+      if (settingsRes.data) {
+        setSettings(settingsRes.data);
+        setExtraUiStrings(settingsRes.data.ui_translations || {});
+      }
       if (announcementsRes.data) setAnnouncements(announcementsRes.data);
       setLoading(false);
 
