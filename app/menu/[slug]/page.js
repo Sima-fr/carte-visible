@@ -394,8 +394,11 @@ export default function MenuPage() {
             <div key={a.id} className="announcement-card">
               {a.image_url && <img src={a.image_url} className="announcement-image" alt="" />}
               <div className="announcement-body">
-                <div className="announcement-title">{announcementTitle(a, lang)}</div>
-                <div className="announcement-message">{announcementMessage(a, lang)}</div>
+                {!a.image_url && <div className="announcement-icon">📣</div>}
+                <div>
+                  <div className="announcement-title">{announcementTitle(a, lang)}</div>
+                  <div className="announcement-message">{announcementMessage(a, lang)}</div>
+                </div>
               </div>
             </div>
           ))}
