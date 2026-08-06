@@ -581,14 +581,16 @@ function DishRow({ dish, dishes, settings, lang, onView, onAdd }) {
   }
   return (
     <div className={`dish-row ${!dish.available ? 'unavailable' : ''}`}>
-      <div
-        onClick={dish.available ? onView : undefined}
-        className="dish-thumb"
-        style={{
-          backgroundImage: dish.photo_url ? `url('${dish.photo_url}')` : 'none',
-          cursor: dish.available ? 'pointer' : 'default',
-        }}
-      />
+{settings?.show_photos !== false && dish.photo_url && (
+        <div
+          onClick={dish.available ? onView : undefined}
+          className="dish-thumb"
+          style={{
+            backgroundImage: `url('${dish.photo_url}')`,
+            cursor: dish.available ? 'pointer' : 'default',
+          }}
+        />
+      )}
       <div onClick={dish.available ? onView : undefined} style={{ flex: 1, cursor: dish.available ? 'pointer' : 'default' }}>
         <div style={{ fontWeight: 600, fontSize: 14.5 }}>
           {dishName(dish, lang, settings?.translate_titles)}
