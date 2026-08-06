@@ -56,7 +56,7 @@ export default function AdminPage() {
   const [settings, setSettings] = useState({ show_recommendations: false, track_stats: false, accent_color: '#7C2D2D', background_color: '#FAF3E6', translate_titles: false, social_facebook: '', social_instagram: '', social_email: '', social_website: '', social_phone: '', enabled_languages: 'en,de' });
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('dishes');const [tableCount, setTableCount] = useState(10);
+  const [activeTab, setActiveTab] = useState('dishes');const [tableCount, setTableCount] = useState(10);const [logoUploading, setLogoUploading] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [openDishCat, setOpenDishCat] = useState({});
   const [openRecoFor, setOpenRecoFor] = useState(null);
@@ -525,6 +525,27 @@ description_en: form.descriptionEn.trim() || null,
     setSettings((s) => ({ ...s, [field]: value }));
     const { error } = await supabase.from('settings').update({ [field]: value || null }).eq('restaurant_id', restaurant.id);
     if (error) alert("Erreur d'enregistrement : " + error.message);
+  }async function uploadLogo(file) {
+    setLogoUploading(true);
+    try {
+      let toUpload = file;
+      try {
+        toUpload = await resizeImage(file, 400, 0.85);
+      } catch (e) {
+        toUpload = file;
+      }
+      const path = `logo-${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
+      const { error } = await supabase.storage.from('photos').upload(path, toUpload, { contentType: 'image/jpeg' });
+      if (error) {
+        alert("Erreur d'envoi du logo : " + error.message);
+        return;
+      }
+      const { data } = supabase.storage.from('photos').getPublicUrl(path);
+      await supabase.from('settings').update({ logo_url: data.publicUrl }).eq('restaurant_id', restaurant.id);
+      setSettings((s) => ({ ...s, logo_url: data.publicUrl }));
+    } finally {
+      setLogoUploading(false);
+    }
   }
 
   async function setCategoryTranslation(catId, field, value) {
@@ -1162,9 +1183,8 @@ alt={`QR table ${n}`}
                 style={{ width: 44, height: 32, border: '1px solid var(--line)', borderRadius: 8, padding: 2, background: 'none', cursor: 'pointer', flexShrink: 0, marginLeft: 12 }}
               />
             </div>
-            <div className="toggle-row" style={{ borderBottom: 'none' }}>
+<div className="toggle-row">
               <div>
-                <div className="toggle-label">Couleur de fond</div>
                 <div className="toggle-desc">Change la couleur d'arrière-plan de la carte.</div>
               </div>
               <input
@@ -1173,6 +1193,32 @@ alt={`QR table ${n}`}
                 onChange={(e) => setBackgroundColor(e.target.value)}
                 style={{ width: 44, height: 32, border: '1px solid var(--line)', borderRadius: 8, padding: 2, background: 'none', cursor: 'pointer', flexShrink: 0, marginLeft: 12 }}
               />
+            </div>
+            <div className="field" style={{ marginTop: 14, marginBottom: 0 }}>
+              <label>Logo (optionnel)</label>
+              <label
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
+                  border: '1px dashed var(--line)', borderRadius: 10, padding: 10, background: 'var(--paper)',
+                }}
+              >
+                <div
+                  style={{
+                    width: 40, height: 40, borderRadius: 8, flexShrink: 0,
+                    backgroundColor: '#EFE6D4', backgroundSize: 'cover', backgroundPosition: 'center',
+                    backgroundImage: settings.logo_url ? `url('${settings.logo_url}')` : 'none',
+                  }}
+                />
+                <span style={{ fontSize: 12.5, color: 'var(--ink-dim)' }}>
+                  {logoUploading ? 'Envoi…' : settings.logo_url ? 'Remplacer le logo…' : 'Choisir un logo…'}
+                </span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => { const f = e.target.files[0]; if (f) uploadLogo(f); }}
+                  style={{ display: 'none' }}
+                />
+              </label>
             </div>
           </div>
 
