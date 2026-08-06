@@ -729,8 +729,8 @@ function toggleExtraLang(code) {
                   Table {n}
                 </div>
                 <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&color=${(settings.accent_color || '#7C2D2D').replace('#', '')}&bgcolor=FFFFFF&src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&color=${(settings.accent_color || '#7C2D2D').replace('#', '')}&bgcolor=FFFFFF&data=${encodeURIComponent(`https://carte-visible.vercel.app/menu/${restaurant?.slug}?table=${n}`)}`}
-                  alt={`QR table ${n}`}
+src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&color=${(settings.accent_color || '#7C2D2D').replace('#', '')}&bgcolor=FFFFFF&data=${encodeURIComponent(`https://carte-visible.vercel.app/menu/${restaurant?.slug}?table=${n}`)}`}
+alt={`QR table ${n}`}
                   width={140}
                   height={140}
                 />
