@@ -1160,10 +1160,19 @@ alt={`QR table ${n}`}
                 <label>Titre</label>
                 <input value={annTitle} onChange={(e) => setAnnTitle(e.target.value)} placeholder="Ex. Soirée tapas ce vendredi 🎉" />
               </div>
-              <div className="field">
+<div className="field">
                 <label>Message</label>
-                <input value={annMessage} onChange={(e) => setAnnMessage(e.target.value)} placeholder="Ex. Dès 19h, formule spéciale à 25€. Réservation conseillée." />
-              </div><div className="field">
+                <textarea
+                  value={annMessage}
+                  onChange={(e) => setAnnMessage(e.target.value)}
+                  placeholder="Ex. Dès 19h, formule spéciale à 25€.&#10;Réservation conseillée."
+                  rows={4}
+                  style={{
+                    width: '100%', background: 'var(--paper)', border: '1px solid var(--line)', color: 'var(--ink)',
+                    padding: '9px 10px', borderRadius: 8, fontSize: 13.5, fontFamily: 'inherit', resize: 'vertical',
+                  }}
+                />
+              </div>
                 <label>Image (optionnel)</label>
                 <label
                   style={{
