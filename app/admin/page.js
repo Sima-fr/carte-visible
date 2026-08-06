@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { resizeImage } from '../../lib/resizeImage';
 import { formatPrice } from '../../lib/format';
-import { translateText } from '../../lib/translate';import { LANGUAGE_CATALOG } from '../../lib/languages';
+import { translateText } from '../../lib/translate';import { LANGUAGE_CATALOG } from '../../lib/languages';import { UI_STRINGS } from '../../lib/i18n';
 
 const ALLERGEN_LIST = [
   'Gluten', 'Crustacés', 'Œufs', 'Poissons', 'Arachides', 'Soja', 'Lait',
@@ -581,6 +581,29 @@ description_en: form.descriptionEn.trim() || null,
           await supabase.from('announcements').update(patch).eq('id', a.id);
         }
       }
+
+      if (extraLangs.length) {
+        const uiKeys = Object.entries(UI_STRINGS.fr).filter(([, v]) => typeof v === 'string');
+        const currentUi = settings.ui_translations || {};
+        const updatedUi = { ...currentUi };
+        let uiChanged = false;
+        for (const code of extraLangs) {
+          const existing = currentUi[code] || {};
+          const patch = { ...existing };
+          for (const [key, frText] of uiKeys) {
+            if (!existing[key]) {
+              patch[key] = await translateText(frText, code);
+              uiChanged = true;
+            }
+          }
+          updatedUi[code] = patch;
+        }
+        if (uiChanged) {
+          await supabase.from('settings').update({ ui_translations: updatedUi }).eq('restaurant_id', restaurant.id);
+          setSettings((s) => ({ ...s, ui_translations: updatedUi }));
+        }
+      }
+
       await loadCategories();
       await loadDishes();
       await loadAnnouncements();
