@@ -53,7 +53,7 @@ function categoryPath(categories, id) {
 export default function AdminPage() {
   const [dishes, setDishes] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [settings, setSettings] = useState({ show_recommendations: false, track_stats: false, accent_color: '#7C2D2D', background_color: '#FAF3E6', translate_titles: false, social_facebook: '', social_instagram: '', social_email: '', social_website: '', social_phone: '', enabled_languages: 'en,de' });
+  const [settings, setSettings] = useState({ show_recommendations: false, track_stats: false,show_photos: true, accent_color: '#7C2D2D', background_color: '#FAF3E6', translate_titles: false, social_facebook: '', social_instagram: '', social_email: '', social_website: '', social_phone: '', enabled_languages: 'en,de' });
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('dishes');const [tableCount, setTableCount] = useState(10);const [logoUploading, setLogoUploading] = useState(false);
@@ -807,14 +807,16 @@ alt={`QR table ${n}`}
                         padding: '10px 4px', borderBottom: openRecoFor === d.id ? 'none' : '1px solid var(--line)',
                       }}
                     >
-                      <div
-                        style={{
-                          width: 50, height: 50, borderRadius: 10, flexShrink: 0,
-                          backgroundColor: '#EFE6D4', backgroundSize: 'cover', backgroundPosition: 'center',
-                          backgroundImage: d.photo_url ? `url('${d.photo_url}')` : 'none',
-                          border: '1px solid var(--line)',
-                        }}
-                      />
+{settings.show_photos && d.photo_url && (
+                        <div
+                          style={{
+                            width: 50, height: 50, borderRadius: 10, flexShrink: 0,
+                            backgroundColor: '#EFE6D4', backgroundSize: 'cover', backgroundPosition: 'center',
+                            backgroundImage: `url('${d.photo_url}')`,
+                            border: '1px solid var(--line)',
+                          }}
+                        />
+                      )}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontWeight: 600, fontSize: 14 }}>{d.name}</div>
                         <div style={{ color: 'var(--ink-dim)', fontSize: 12.5 }}>{formatPrice(d.price)}</div>
@@ -910,7 +912,7 @@ alt={`QR table ${n}`}
                 {editingId ? 'Modifier le plat' : 'Nouveau plat'}
               </h4>
 
-              <div className="field">
+              {settings.show_photos && (<div className="field">
                 <label>Photo du plat</label>
                 <label
                   style={{
@@ -931,7 +933,7 @@ alt={`QR table ${n}`}
                   <input type="file" accept="image/*" onChange={onFileChange} style={{ display: 'none' }} />
                 </label>
               </div>
-
+)}
               <div className="field">
                 <label>Nom du plat</label>
                 <input value={form.name} onChange={(e) => updateForm({ name: e.target.value })} placeholder="Ex. Burrata, tomates confites" />
@@ -1284,7 +1286,18 @@ alt={`QR table ${n}`}
             </div>
             <div className="toggle-row">
               <div>
-                <div className="toggle-label">Recommandations de boissons</div>
+                <div className="toggle-row">
+              <div>
+                <div className="toggle-label">Photos des plats</div>
+                <div className="toggle-desc">Si désactivé, aucune photo n'est proposée ni affichée — pratique si tu ne veux pas t'en occuper.</div>
+              </div>
+              <button
+                className={`toggle-btn ${settings.show_photos ? 'on' : ''}`}
+                onClick={() => toggleSetting('show_photos')}
+              >
+                {settings.show_photos ? 'Activé' : 'Désactivé'}
+              </button>
+            </div><div className="toggle-label">Recommandations de boissons</div>
                 <div className="toggle-desc">Suggère une boisson conseillée quand le client regarde un plat.</div>
               </div>
               <button
