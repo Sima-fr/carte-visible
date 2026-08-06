@@ -314,8 +314,11 @@ export default function MenuPage() {
       <div className="awning" />
       <div className="header">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div className="eyebrow">{restaurant?.name || ''} <span className="season-glyph">{seasonGlyph()}</span></div>
-          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+<div className="eyebrow" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {settings.logo_url && <img src={settings.logo_url} className="header-logo" alt="" />}
+            <span>{restaurant?.name || ''} <span className="season-glyph">{seasonGlyph()}</span></span>
+          </div>
+              <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
             <button
               onClick={() => setFilterOpen((o) => !o)}
               className="toggle-btn"
@@ -387,10 +390,13 @@ export default function MenuPage() {
 
       {announcements.length > 0 && (
         <div style={{ padding: '0 20px 14px' }}>
-          {announcements.map((a) => (
+{announcements.map((a) => (
             <div key={a.id} className="announcement-card">
-              <div className="announcement-title">{announcementTitle(a, lang)}</div>
-              <div className="announcement-message">{announcementMessage(a, lang)}</div>
+              {a.image_url && <img src={a.image_url} className="announcement-image" alt="" />}
+              <div className="announcement-body">
+                <div className="announcement-title">{announcementTitle(a, lang)}</div>
+                <div className="announcement-message">{announcementMessage(a, lang)}</div>
+              </div>
             </div>
           ))}
         </div>
