@@ -1172,7 +1172,8 @@ alt={`QR table ${n}`}
                     padding: '9px 10px', borderRadius: 8, fontSize: 13.5, fontFamily: 'inherit', resize: 'vertical',
                   }}
                 />
-              </div>
+</div>
+              <div className="field">
                 <label>Image (optionnel)</label>
                 <label
                   style={{
